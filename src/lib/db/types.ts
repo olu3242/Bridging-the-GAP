@@ -465,3 +465,27 @@ export interface MentorshipRow {
   requested_at: string;
   responded_at: string | null;
 }
+
+// ------------------------------------------------------------- W04 — E7 tutor ---
+
+export interface TutorSessionRow {
+  id: string;
+  profile_id: string;
+  pathway_step_id: string | null;
+  module_id: string | null;
+  competency_id: string | null;
+  started_at: string;
+  last_turn_at: string;
+  turn_count: number;
+}
+
+export interface TutorTurnRow {
+  id: string;
+  ordinal: number;
+  intent: "explain" | "question" | "hint" | "critique" | "recommend_next";
+  learner_message: string;
+  tutor_response: string | null;
+  outcome: "delivered" | "refused_policy" | "refused_scope" | "provider_unavailable" | "invalid_output";
+  refusal_reason: string | null;
+  created_at: string;
+}

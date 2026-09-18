@@ -1,6 +1,7 @@
 import {
   Award,
   Building2,
+  Bot,
   Briefcase,
   ClipboardCheck,
   Gauge,
@@ -28,6 +29,7 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, capability: "profile.read_own" },
   { href: "/pathway", label: "Pathway", icon: Route, capability: "profile.read_own" },
+  { href: "/tutor", label: "AI tutor", icon: Bot, capability: "learner.dashboard.view" },
   { href: "/projects", label: "Projects", icon: Hammer, capability: "project.manage_own" },
   { href: "/portfolio", label: "Portfolio", icon: Award, capability: "credential.read_own" },
   { href: "/baseline/results", label: "Baseline", icon: Gauge, capability: "profile.read_own" },

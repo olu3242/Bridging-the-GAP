@@ -224,8 +224,8 @@ export async function generatePathwayOnce(userId: string): Promise<string> {
 export async function pathwaySteps(userId: string, pathwayId: string) {
   return asUser(userId, async (client) => {
     const result = await client.query(
-      `select id, position, status, competency_slug, competency_name, from_level, target_level,
-              depth, blocked_by, rationale
+      `select id, position, status, competency_id, competency_slug, competency_name,
+              from_level, target_level, depth, blocked_by, rationale
        from public.pathway_step_view where pathway_id = $1 order by position`,
       [pathwayId],
     );
@@ -233,6 +233,7 @@ export async function pathwaySteps(userId: string, pathwayId: string) {
       id: string;
       position: number;
       status: string;
+      competency_id: string;
       competency_slug: string;
       competency_name: string;
       from_level: number;
