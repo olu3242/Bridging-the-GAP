@@ -390,3 +390,78 @@ export interface CredentialRow {
   revoked_at: string | null;
   revocation_reason: string | null;
 }
+
+// -------------------------------------------- W09–W11 — E13/E14/E15/E16 ---
+
+export interface OpportunityRow {
+  id: string;
+  slug: string;
+  organization_id: string | null;
+  kind: "internship" | "job" | "fellowship" | "challenge" | "research";
+  title: string;
+  description: string;
+  location: string | null;
+  is_remote: boolean;
+  status: "draft" | "open" | "closed" | "archived";
+  weekly_hours: number | null;
+  closes_at: string | null;
+}
+
+export interface MatchFactor {
+  competency: string;
+  name: string;
+  required_level: number;
+  verified_level: number;
+  is_required: boolean;
+  evidence_id?: string;
+  reason?: string;
+}
+
+export interface OpportunityMatchRow {
+  id: string;
+  opportunity_id: string;
+  profile_id: string;
+  score: number;
+  matched: MatchFactor[];
+  missing: MatchFactor[];
+  evidence_count: number;
+  credential_count: number;
+  computed_at: string;
+}
+
+export interface ApplicationRow {
+  id: string;
+  opportunity_id: string;
+  profile_id: string;
+  status:
+    | "draft" | "submitted" | "under_review" | "shortlisted"
+    | "rejected" | "withdrawn" | "offered" | "accepted";
+  match_snapshot: { score?: number | null; matched?: MatchFactor[]; missing?: MatchFactor[] };
+  shared_verified_skill_ids: string[];
+  note: string | null;
+  submitted_at: string;
+}
+
+export interface MentorRecommendationRow {
+  mentor_profile_id: string;
+  mentor_name: string;
+  headline: string;
+  monthly_capacity: number;
+  covered_competencies: string[];
+  covered_count: number;
+  open_step_count: number;
+  rationale: string;
+}
+
+export interface MentorshipRow {
+  id: string;
+  mentor_profile_id: string;
+  learner_profile_id: string;
+  competency_id: string | null;
+  status: "requested" | "accepted" | "declined" | "active" | "completed" | "ended";
+  rationale: { covered_competencies?: string[]; source?: string };
+  learner_message: string | null;
+  mentor_response: string | null;
+  requested_at: string;
+  responded_at: string | null;
+}

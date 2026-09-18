@@ -160,6 +160,46 @@ export const credentialMachine = createStateMachine<CredentialStatus>("credentia
   expired: [],
 });
 
+export const OPPORTUNITY_STATUSES = ["draft", "open", "closed", "archived"] as const;
+export type OpportunityStatus = (typeof OPPORTUNITY_STATUSES)[number];
+
+export const opportunityMachine = createStateMachine<OpportunityStatus>("opportunity", {
+  draft: ["open", "archived"],
+  open: ["closed", "archived"],
+  closed: ["open", "archived"],
+  archived: [],
+});
+
+export const APPLICATION_STATUSES = [
+  "draft", "submitted", "under_review", "shortlisted", "rejected", "withdrawn", "offered", "accepted",
+] as const;
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+export const applicationMachine = createStateMachine<ApplicationStatus>("application", {
+  draft: [],
+  submitted: ["under_review", "withdrawn"],
+  under_review: ["shortlisted", "rejected", "withdrawn"],
+  shortlisted: ["offered", "rejected", "withdrawn"],
+  offered: ["accepted", "withdrawn"],
+  accepted: [],
+  rejected: [],
+  withdrawn: [],
+});
+
+export const MENTORSHIP_STATUSES = [
+  "requested", "accepted", "declined", "active", "completed", "ended",
+] as const;
+export type MentorshipStatus = (typeof MENTORSHIP_STATUSES)[number];
+
+export const mentorshipMachine = createStateMachine<MentorshipStatus>("mentorship", {
+  requested: ["accepted", "declined"],
+  accepted: ["active", "ended"],
+  declined: [],
+  active: ["completed", "ended"],
+  completed: [],
+  ended: [],
+});
+
 export const DB_STATE_MACHINES = [
   membershipMachine,
   personaGrantMachine,
@@ -174,4 +214,7 @@ export const DB_STATE_MACHINES = [
   evidenceMachine,
   reviewMachine,
   credentialMachine,
+  opportunityMachine,
+  applicationMachine,
+  mentorshipMachine,
 ] as const;

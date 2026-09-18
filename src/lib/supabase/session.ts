@@ -15,6 +15,8 @@ const PROTECTED_PREFIXES = [
   "/projects",
   "/portfolio",
   "/review",
+  "/opportunities",
+  "/mentorship",
 ];
 /** Routes a signed-in learner should never sit on. */
 const AUTH_PREFIXES = ["/sign-in", "/join"];
