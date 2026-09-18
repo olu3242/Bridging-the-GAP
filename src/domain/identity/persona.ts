@@ -60,6 +60,10 @@ export const CAPABILITIES = [
   "membership.invite",
   "membership.manage",
   "learner.dashboard.view",
+  "project.manage_own",
+  "evidence.submit_own",
+  "credential.read_own",
+  "review.decide",
   "mentor.workspace.view",
   "reviewer.queue.view",
   "institution.portal.view",
@@ -85,9 +89,16 @@ const SELF_SERVICE: readonly Capability[] = [
 ];
 
 export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
-  learner: [...SELF_SERVICE, "learner.dashboard.view", "organization.create"],
+  learner: [
+    ...SELF_SERVICE,
+    "learner.dashboard.view",
+    "organization.create",
+    "project.manage_own",
+    "evidence.submit_own",
+    "credential.read_own",
+  ],
   mentor: [...SELF_SERVICE, "mentor.workspace.view", "organization.read"],
-  reviewer: [...SELF_SERVICE, "reviewer.queue.view", "organization.read"],
+  reviewer: [...SELF_SERVICE, "reviewer.queue.view", "review.decide", "organization.read"],
   institution: [
     ...SELF_SERVICE,
     "institution.portal.view",

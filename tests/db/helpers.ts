@@ -266,3 +266,94 @@ export async function completeStepLearning(userId: string, stepId: string): Prom
     );
   }
 }
+
+// ------------------------------------------ projects / verification helpers ---
+
+export async function grantPersonaOperator(userId: string): Promise<void> {
+  await grantPersona(userId, "operator");
+}
+
+export async function makeReviewer(label: string) {
+  const reviewer = await createUser(label);
+  await grantPersona(reviewer.id, "reviewer");
+  return reviewer;
+}
+
+export async function assignProject(
+  userId: string,
+  briefSlug: string,
+  stepId?: string,
+): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.assign_project($1, $2)).id as id", [
+      briefSlug,
+      stepId ?? null,
+    ]);
+    return result.rows[0].id as string;
+  });
+}
+
+export async function submitEvidence(
+  userId: string,
+  projectId: string,
+  summary = "I built the thing the brief asked for, tested it on three real cases, and recorded what changed between runs.",
+): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.submit_evidence($1, $2)).id as id", [
+      projectId,
+      summary,
+    ]);
+    return result.rows[0].id as string;
+  });
+}
+
+export async function openReviewFor(evidenceId: string): Promise<string> {
+  const [row] = await sql<{ id: string }>(
+    "select id from public.review_assignments where evidence_id = $1 order by assigned_at desc limit 1",
+    [evidenceId],
+  );
+  return row.id;
+}
+
+/** Scores every criterion on the evidence's rubric at the given score. */
+export async function scoresFor(evidenceId: string, score = 4) {
+  const rows = await sql<{ id: string }>(
+    `select c.id from public.rubric_criteria c
+     join public.evidence e on e.rubric_id = c.rubric_id
+     where e.id = $1 order by c.sort_order`,
+    [evidenceId],
+  );
+  return rows.map((r) => ({ criterion_id: r.id, score }));
+}
+
+export async function decideReview(
+  reviewerId: string,
+  reviewId: string,
+  decision: "approved" | "rejected" | "revision_required",
+  rationale = "Reviewed against every required criterion and recorded the reasoning.",
+  scores?: Array<{ criterion_id: string; score: number }>,
+): Promise<void> {
+  await asUser(reviewerId, (client) =>
+    client.query("select public.decide_review($1, $2, $3, $4::jsonb)", [
+      reviewId,
+      decision,
+      rationale,
+      JSON.stringify(scores ?? []),
+    ]),
+  );
+}
+
+/** Full prove-spine: assign → submit → claim → approve. Returns ids. */
+export async function proveCompetency(
+  learnerId: string,
+  reviewerId: string,
+  briefSlug: string,
+  stepId?: string,
+): Promise<{ projectId: string; evidenceId: string; reviewId: string }> {
+  const projectId = await assignProject(learnerId, briefSlug, stepId);
+  const evidenceId = await submitEvidence(learnerId, projectId);
+  const reviewId = await openReviewFor(evidenceId);
+  await asUser(reviewerId, (client) => client.query("select public.claim_review($1)", [reviewId]));
+  await decideReview(reviewerId, reviewId, "approved", undefined, await scoresFor(evidenceId, 4));
+  return { projectId, evidenceId, reviewId };
+}

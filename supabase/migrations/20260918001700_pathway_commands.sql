@@ -227,7 +227,7 @@ begin
   where pathway_id = v_step.pathway_id and status not in ('completed','skipped');
 
   if v_remaining = 0 then
-    perform public.enqueue_notification(
+    perform btg.notify(
       (select profile_id from public.pathways where id = v_step.pathway_id),
       'pathway.completed', 'You finished your pathway',
       'pathway.completed:' || v_step.pathway_id::text,

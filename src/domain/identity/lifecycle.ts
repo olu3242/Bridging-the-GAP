@@ -109,6 +109,57 @@ export const moduleProgressMachine = createStateMachine<ProgressStatus>("module_
   completed: [],
 });
 
+export const PROJECT_STATUSES = [
+  "assigned", "started", "submitted", "under_review", "revision_required", "completed", "withdrawn",
+] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+export const projectMachine = createStateMachine<ProjectStatus>("project", {
+  assigned: ["started", "withdrawn"],
+  started: ["submitted", "withdrawn"],
+  submitted: ["under_review"],
+  under_review: ["revision_required", "completed"],
+  revision_required: ["submitted", "withdrawn"],
+  completed: [],
+  withdrawn: [],
+});
+
+export const EVIDENCE_STATUSES = [
+  "draft", "submitted", "under_review", "accepted", "rejected", "superseded",
+] as const;
+export type EvidenceStatus = (typeof EVIDENCE_STATUSES)[number];
+
+export const evidenceMachine = createStateMachine<EvidenceStatus>("evidence", {
+  draft: ["submitted"],
+  submitted: ["under_review", "superseded"],
+  under_review: ["accepted", "rejected", "superseded"],
+  accepted: [],
+  rejected: ["superseded"],
+  superseded: [],
+});
+
+export const REVIEW_STATUSES = [
+  "pending", "in_review", "approved", "rejected", "revision_required",
+] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+export const reviewMachine = createStateMachine<ReviewStatus>("review", {
+  pending: ["in_review", "approved", "rejected", "revision_required"],
+  in_review: ["approved", "rejected", "revision_required"],
+  approved: [],
+  rejected: [],
+  revision_required: [],
+});
+
+export const CREDENTIAL_STATUSES = ["issued", "revoked", "expired"] as const;
+export type CredentialStatus = (typeof CREDENTIAL_STATUSES)[number];
+
+export const credentialMachine = createStateMachine<CredentialStatus>("credential", {
+  issued: ["revoked", "expired"],
+  revoked: [],
+  expired: [],
+});
+
 export const DB_STATE_MACHINES = [
   membershipMachine,
   personaGrantMachine,
@@ -119,4 +170,8 @@ export const DB_STATE_MACHINES = [
   pathwayMachine,
   pathwayStepMachine,
   moduleProgressMachine,
+  projectMachine,
+  evidenceMachine,
+  reviewMachine,
+  credentialMachine,
 ] as const;

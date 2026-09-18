@@ -270,7 +270,7 @@ describe("learning consumes the pathway", () => {
     expect(rejection.message).toContain("needs your work");
   });
 
-  it("completing every activity completes the module and closes the step", async () => {
+  it("completing every activity completes the module and advances the step", async () => {
     const learner = await learnerWithGaps("completer");
     const pathwayId = await generatePathwayOnce(learner.id);
     const steps = await pathwaySteps(learner.id, pathwayId);
@@ -285,11 +285,14 @@ describe("learning consumes the pathway", () => {
     );
     expect(progress).toMatchObject({ status: "completed", activities_completed: 3 });
 
+    // The step moves, but does not close: this competency asks for evidence,
+    // and closing it without a verified skill is what verification.test.ts
+    // asserts must not happen.
     const after = await pathwaySteps(learner.id, pathwayId);
-    expect(after.find((s) => s.id === open.id)!.status).toBe("completed");
+    expect(after.find((s) => s.id === open.id)!.status).toBe("in_progress");
   });
 
-  it("unlocks the dependent step once its prerequisite closes", async () => {
+  it("keeps the dependent step locked until the prerequisite is verified", async () => {
     const learner = await learnerWithGaps("unlocker");
     const pathwayId = await generatePathwayOnce(learner.id);
     const before = await pathwaySteps(learner.id, pathwayId);
@@ -297,15 +300,14 @@ describe("learning consumes the pathway", () => {
 
     await completeStepLearning(learner.id, before.find((s) => s.competency_slug === "ai-concepts")!.id);
 
+    // Learning alone does not unlock what came after it.
     const after = await pathwaySteps(learner.id, pathwayId);
     const promptDesign = after.find((s) => s.competency_slug === "prompt-design")!;
-    expect(promptDesign.status).toBe("available");
-    expect(promptDesign.blocked_by).toEqual([]);
-    // Its own dependent is still blocked.
-    expect(after.find((s) => s.competency_slug === "ai-tool-workflow")!.status).toBe("locked");
+    expect(promptDesign.status).toBe("locked");
+    expect(promptDesign.blocked_by).toEqual(["How AI systems work"]);
   });
 
-  it("audits module completion and step completion", async () => {
+  it("audits every activity and the module completion", async () => {
     const learner = await learnerWithGaps("audited-learning");
     const pathwayId = await generatePathwayOnce(learner.id);
     const steps = await pathwaySteps(learner.id, pathwayId);
@@ -322,7 +324,6 @@ describe("learning consumes the pathway", () => {
       "learning.activity.completed",
       "learning.activity.completed",
       "learning.module.completed",
-      "pathway.step.completed",
     ]);
   });
 

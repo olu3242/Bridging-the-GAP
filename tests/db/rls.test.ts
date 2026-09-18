@@ -84,6 +84,40 @@ describe("profile visibility", () => {
   });
 });
 
+describe("reviewer visibility is narrow", () => {
+  it("lets a learner see who reviewed their own evidence, and no one else", async () => {
+    const { makeReviewer, proveCompetency, walkBaseline } = await import("./helpers");
+    const [learnerA, learnerB, reviewer] = await Promise.all([
+      createUser("vis-a"),
+      createUser("vis-b"),
+      makeReviewer("vis-reviewer"),
+    ]);
+    await walkBaseline(learnerA.id, { correctly: false });
+    await proveCompetency(learnerA.id, reviewer.id, "brief-ai-concepts");
+
+    // A saw their reviewer.
+    const seenByA = await asUser(learnerA.id, async (client) => {
+      const result = await client.query("select id from public.profiles where id = $1", [reviewer.id]);
+      return result.rowCount;
+    });
+    expect(seenByA).toBe(1);
+
+    // B, who has no review by this reviewer, still cannot.
+    const seenByB = await asUser(learnerB.id, async (client) => {
+      const result = await client.query("select id from public.profiles where id = $1", [reviewer.id]);
+      return result.rowCount;
+    });
+    expect(seenByB).toBe(0);
+
+    // And A still cannot read an unrelated learner.
+    const crossRead = await asUser(learnerA.id, async (client) => {
+      const result = await client.query("select id from public.profiles where id = $1", [learnerB.id]);
+      return result.rowCount;
+    });
+    expect(crossRead).toBe(0);
+  });
+});
+
 describe("tenant isolation", () => {
   it("hides one organization's members from another organization's admin", async () => {
     const [adminA, adminB, memberB] = await Promise.all([

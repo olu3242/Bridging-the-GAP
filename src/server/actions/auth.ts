@@ -7,6 +7,7 @@ import { publicEnv } from "@/lib/env";
 import { SELECTABLE_PERSONAS } from "@/domain/identity/onboarding";
 import { resolveDestination } from "@/domain/identity/journey";
 import type { OnboardingState } from "@/domain/identity/lifecycle";
+import type { Persona } from "@/domain/identity/persona";
 import { type ActionState, errorState, fieldErrorsFrom, toActionState } from "./action-result";
 
 const credentialsSchema = z.object({
@@ -86,7 +87,7 @@ export async function signInAction(_prev: ActionState, formData: FormData): Prom
     // onboarding even if they asked for the dashboard.
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarding_state, baseline_completed_at, active_pathway_id")
+      .select("onboarding_state, baseline_completed_at, active_pathway_id, primary_persona")
       .eq("id", data.user.id)
       .maybeSingle();
 
@@ -95,6 +96,7 @@ export async function signInAction(_prev: ActionState, formData: FormData): Prom
       onboardingState: (profile?.onboarding_state as OnboardingState) ?? "not_started",
       baselineCompleted: Boolean(profile?.baseline_completed_at),
       pathwayGenerated: Boolean(profile?.active_pathway_id),
+      primaryPersona: profile?.primary_persona as Persona | undefined,
     };
     const resolved = resolveDestination(state);
     destination = resolved === "/dashboard" && requested ? requested : resolved;

@@ -1,3 +1,4 @@
+import type { Persona } from "./persona";
 import type { OnboardingState } from "./lifecycle";
 
 /**
@@ -22,6 +23,12 @@ export type JourneyStage = (typeof JOURNEY_STAGES)[number];
 export interface JourneyState {
   authenticated: boolean;
   onboardingState: OnboardingState;
+  /**
+   * Whose journey this is. The learner stages (baseline, pathway) do not apply
+   * to a reviewer, mentor or organization persona — gating them on a learner
+   * baseline would trap them on a page that is not theirs to complete.
+   */
+  primaryPersona?: Persona;
   /** Set once a baseline diagnostic attempt has been scored. */
   baselineCompleted?: boolean;
   /** Set once a pathway has been generated from the baseline. */
@@ -33,6 +40,8 @@ export interface JourneyGate {
   route: string;
   /** Flipped on by the wave that owns the stage. */
   implemented: boolean;
+  /** True when this gate only applies to a learner's own journey. */
+  learnerOnly?: boolean;
   satisfied: (state: JourneyState) => boolean;
 }
 
@@ -53,12 +62,14 @@ export const JOURNEY_GATES: readonly JourneyGate[] = [
     stage: "baseline",
     route: "/baseline",
     implemented: true, // W02 — Diagnostic Engine
+    learnerOnly: true,
     satisfied: (state) => state.baselineCompleted === true,
   },
   {
     stage: "pathway",
     route: "/pathway",
     implemented: true, // W03 — Pathway Engine
+    learnerOnly: true,
     satisfied: (state) => state.pathwayGenerated === true,
   },
 ];
@@ -72,7 +83,15 @@ export const PRODUCT_HOME = "/dashboard";
  * cannot silently become a permanent block.
  */
 export function resolveEntryGate(state: JourneyState): JourneyGate | null {
-  return JOURNEY_GATES.find((gate) => gate.implemented && !gate.satisfied(state)) ?? null;
+  const isLearnerJourney = (state.primaryPersona ?? "learner") === "learner";
+  return (
+    JOURNEY_GATES.find(
+      (gate) =>
+        gate.implemented &&
+        (isLearnerJourney || !gate.learnerOnly) &&
+        !gate.satisfied(state),
+    ) ?? null
+  );
 }
 
 /** The single destination a sign-in or a signed-in visit should resolve to. */

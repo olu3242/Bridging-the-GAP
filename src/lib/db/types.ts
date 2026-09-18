@@ -280,3 +280,113 @@ export interface LearningActivityRow {
   estimated_minutes: number;
   sort_order: number;
 }
+
+// ----------------------------------------------- W05–W08 — E8/E9/E10/E11/E12 ---
+
+export interface ProjectBriefRow {
+  id: string;
+  slug: string;
+  competency_id: string;
+  organization_id: string | null;
+  kind: "project" | "challenge";
+  title: string;
+  brief: string;
+  target_level: number;
+  expected_evidence: string;
+  estimated_hours: number;
+}
+
+export interface ProjectRow {
+  id: string;
+  brief_id: string;
+  profile_id: string;
+  competency_id: string;
+  pathway_step_id: string | null;
+  status:
+    | "assigned"
+    | "started"
+    | "submitted"
+    | "under_review"
+    | "revision_required"
+    | "completed"
+    | "withdrawn";
+  attempt: number;
+  assigned_at: string;
+  submitted_at: string | null;
+  completed_at: string | null;
+}
+
+export interface EvidenceRow {
+  id: string;
+  project_id: string;
+  profile_id: string;
+  competency_id: string;
+  rubric_id: string;
+  version: number;
+  status: "draft" | "submitted" | "under_review" | "accepted" | "rejected" | "superseded";
+  summary: string;
+  artifact_url: string | null;
+  ai_assistance_declared: boolean;
+  ai_assistance_note: string | null;
+  submitted_at: string;
+  superseded_by: string | null;
+}
+
+export interface RubricCriterionRow {
+  id: string;
+  rubric_id: string;
+  code: string;
+  label: string;
+  descriptor: string;
+  weight: number;
+  is_required: boolean;
+  sort_order: number;
+}
+
+export interface ReviewAssignmentRow {
+  id: string;
+  evidence_id: string;
+  reviewer_profile_id: string | null;
+  status: "pending" | "in_review" | "approved" | "rejected" | "revision_required";
+  assigned_at: string;
+  claimed_at: string | null;
+  decided_at: string | null;
+  rationale: string | null;
+}
+
+export interface PortfolioRow {
+  verified_skill_id: string;
+  profile_id: string;
+  level: number;
+  verified_at: string;
+  revoked_at: string | null;
+  competency_slug: string;
+  competency_name: string;
+  domain_name: string;
+  evidence_id: string;
+  evidence_version: number;
+  evidence_summary: string;
+  artifact_url: string | null;
+  ai_assistance_declared: boolean;
+  review_id: string;
+  reviewer_rationale: string | null;
+  decided_at: string | null;
+  reviewer_name: string;
+  project_id: string;
+  project_title: string;
+  project_slug: string;
+}
+
+export interface CredentialRow {
+  id: string;
+  profile_id: string;
+  slug: string;
+  title: string;
+  version: number;
+  status: "issued" | "revoked" | "expired";
+  criteria: { required_competencies?: string[]; min_level?: number };
+  issuance_basis: { verified_skill_ids?: string[]; issued_by?: string };
+  issued_at: string;
+  revoked_at: string | null;
+  revocation_reason: string | null;
+}

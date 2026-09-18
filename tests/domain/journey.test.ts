@@ -89,3 +89,35 @@ describe("journey resolution", () => {
     expect(isPathAllowed(ready, "/pathway/some-step")).toBe(true);
   });
 });
+
+describe("the learner journey is not imposed on other personas", () => {
+  const reviewer = {
+    authenticated: true,
+    onboardingState: "completed",
+    primaryPersona: "reviewer",
+  } as const;
+
+  it("does not send a reviewer through a learner baseline", () => {
+    expect(resolveDestination(reviewer)).toBe(PRODUCT_HOME);
+    expect(resolveEntryGate(reviewer)).toBeNull();
+  });
+
+  it("lets a reviewer reach the review queue", () => {
+    expect(isPathAllowed(reviewer, "/review")).toBe(true);
+    expect(isPathAllowed(reviewer, "/review/abc")).toBe(true);
+  });
+
+  it("still requires every persona to finish onboarding", () => {
+    expect(
+      resolveDestination({
+        authenticated: true,
+        onboardingState: "persona",
+        primaryPersona: "reviewer",
+      }),
+    ).toBe("/onboarding");
+  });
+
+  it("treats an unstated persona as a learner", () => {
+    expect(resolveDestination({ authenticated: true, onboardingState: "completed" })).toBe("/baseline");
+  });
+});
