@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Building2, History, Target } from "lucide-react";
+import { Building2, History, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, Badge, EmptyState, Progress } from "@/components/ui/feedback";
+import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
 import { NotificationInbox } from "@/components/app/notification-inbox";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
@@ -11,7 +11,6 @@ import { getLearnerProfile, getProfile } from "@/server/services/onboarding-serv
 import { listNotifications } from "@/server/services/notification-service";
 import { listOrganizationsForActor } from "@/server/services/organization-service";
 import { markNotificationReadAction } from "@/server/actions/notifications";
-import { progressPercent } from "@/domain/identity/onboarding";
 import { PERSONA_LABELS } from "@/domain/identity/persona";
 import { personasOf } from "@/domain/identity/actor";
 import { formatRelative } from "@/lib/utils";
@@ -80,27 +79,6 @@ export default async function DashboardPage({
         <Alert tone="success" title="Onboarding complete">
           Your goals and consents are recorded. Every recommendation from here is built on them.
         </Alert>
-      ) : null}
-
-      {!onboardingComplete ? (
-        <Card>
-          <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 flex-1 space-y-3">
-              <div>
-                <CardTitle>Finish your setup</CardTitle>
-                <CardDescription>
-                  We only personalize from information you have actually given us.
-                </CardDescription>
-              </div>
-              <Progress value={progressPercent(onboardingState)} label="Setup progress" />
-            </div>
-            <Button asChild>
-              <Link href="/onboarding">
-                Continue <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">

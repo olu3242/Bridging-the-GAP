@@ -127,18 +127,47 @@ describe("complete_onboarding_step", () => {
     expect(notifications).toEqual([{ category: "onboarding.completed" }]);
   });
 
-  it("audits every step and marks completion as notable", async () => {
+  it("records the whole lifecycle in order, and marks completion as notable", async () => {
     const learner = await createUser("audited");
     await completeOnboarding(learner.id);
     const events = await sql<{ action: string; severity: string }>(
       "select action, severity from public.audit_events where actor_profile_id = $1 order by occurred_at",
       [learner.id],
     );
-    expect(events).toHaveLength(4);
-    expect(events.at(-1)).toMatchObject({
-      action: "identity.onboarding.completed",
-      severity: "notice",
-    });
+    expect(events.map((e) => e.action)).toEqual([
+      "identity.session.signed_up",
+      "identity.onboarding.started",
+      "identity.onboarding.step_completed",
+      "identity.onboarding.step_completed",
+      "identity.onboarding.step_completed",
+      "identity.onboarding.completed",
+    ]);
+    expect(events.at(-1)?.severity).toBe("notice");
+  });
+
+  it("carries a landing partner intent into the profile persona", async () => {
+    const employer = await createUser("partner", { intended_persona: "employer" });
+    const [profile] = await sql<{ primary_persona: string }>(
+      "select primary_persona from public.profiles where id = $1",
+      [employer.id],
+    );
+    expect(profile.primary_persona).toBe("employer");
+
+    // The intent pre-selects a persona; it must not grant one.
+    const grants = await sql<{ persona: string }>(
+      "select persona from public.persona_grants where profile_id = $1",
+      [employer.id],
+    );
+    expect(grants.map((g) => g.persona)).toEqual(["learner"]);
+  });
+
+  it("ignores an unrecognised intent instead of failing signup", async () => {
+    const odd = await createUser("odd", { intended_persona: "operator" });
+    const [profile] = await sql<{ primary_persona: string }>(
+      "select primary_persona from public.profiles where id = $1",
+      [odd.id],
+    );
+    expect(profile.primary_persona).toBe("learner");
   });
 
   it("refuses a step the learner is not standing on", async () => {

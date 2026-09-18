@@ -41,9 +41,52 @@ Next execution:  02 — W02 Diagnostic + Competency Graph, Batch A+B
 | E16 Governance | `INTEGRATED` (audit, notifications); observability beyond structured logs is W10 |
 | E3–E15 | `NOT_STARTED` |
 
+## Landing convergence (post-W01)
+
+```
+Scope:           Canonical landing port + landing→product convergence
+Status:          INTEGRATED
+Schema:          +1 forward migration (20260918001000_journey_lifecycle)
+Implementation:  btg-ai-landing/index.html ported to src/app/(marketing) +
+                 src/components/landing/*; static redirect and the duplicated
+                 public/btg-landing/ copy removed; assets under public/images,
+                 public/icons, public/brand; journey resolver routes by
+                 persisted state; partner CTAs carry a persona intent
+Tests:           83/83 vitest, 14/14 Playwright (4 skipped: need Supabase)
+Visual:          Section-for-section pixel match against the canonical at
+                 1440/1280/834/390 with fonts held equal. One deliberate
+                 deviation, see below
+Defects repaired: 2 (font token scope, button line-height)
+External blockers: Supabase project still unprovisioned
+Next execution:  02 — W02 Diagnostic + Competency Graph, Batch A+B
+```
+
+### Deliberate deviation from the canonical design
+
+`btg-ai-landing/css/style.css` resets `ul` but not `ol`, so the canonical page
+renders the browser's own `1.` … `5.` list markers outside the five step cards,
+next to the designed numbered circles, and indents the steps row 40px out of
+alignment with its section heading. The port does not reproduce this. To
+restore canonical behaviour exactly, add to
+`src/app/(marketing)/landing.css`:
+
+```css
+.steps { padding-inline-start: 40px; list-style: decimal; }
+```
+
+### Environment note
+
+The canonical HTML loads Inter and Space Grotesk from Google Fonts. That
+request fails inside this container (`ERR_CERT_AUTHORITY_INVALID` at the
+proxy), so the reference page renders in a fallback face here. The port
+self-hosts both families through `next/font`, which loads all six faces with
+no external request. Visual comparison above was therefore done with fonts
+held equal on both sides.
+
 ## Waves W02 – W10
 
-All `NOT_STARTED`.
+All `NOT_STARTED`. Engine-by-engine certification: `BTG_AI_ENGINES.md`.
+Route classification: `BTG_AI_ROUTES.md`.
 
 ## How to reproduce the certification
 

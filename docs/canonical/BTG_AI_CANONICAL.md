@@ -38,6 +38,26 @@ minimum of E2, and the foundations of E16.
 | E3–E15 | Not started | — |
 | E16 Governance | Audit ledger + notification foundation | `audit_events`, `src/server/services/audit-service.ts` |
 
+## Landing page
+
+`btg-ai-landing/` is the design source of truth and is never edited. `/` is a
+native route (`src/app/(marketing)`) that reproduces it, with the canonical
+stylesheet ported into `src/app/(marketing)/landing.css` — same tokens, same
+breakpoints — scoped to a `.btg-landing` wrapper so the dark app shell is
+unaffected. Canonical assets live in `public/images`, `public/icons` and
+`public/brand`. No static HTML is served and `/` does not redirect.
+
+`src/components/landing/links.ts` is the single CTA → destination map, so a
+dead-CTA audit is one table rather than a grep.
+
+## Journey routing
+
+`src/domain/identity/journey.ts` holds the gates a learner passes through.
+Sign-in and the session proxy both resolve through it, so a part-onboarded
+learner is returned to onboarding rather than dropped on the dashboard. Stages
+owned by unshipped waves carry `implemented: false` and are skipped, so the
+resolver never targets a route that does not exist.
+
 ## Authorization model
 
 Three independent layers, in this order:

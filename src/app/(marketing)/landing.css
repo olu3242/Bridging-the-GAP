@@ -1,6 +1,12 @@
 /* =========================================================
-   BTG AI — Landing Page Styles
-   Tokens: color, type, spacing, radii
+   BTG AI — canonical landing styles.
+
+   Ported verbatim from btg-ai-landing/css/style.css, which remains the
+   design source of truth. Colors, spacing, radii, shadows, typography and
+   breakpoints are unchanged; only three things were adapted for Next.js:
+     1. font families resolve through next/font variables,
+     2. the `body` rule moved onto the `.btg-landing` wrapper,
+     3. the app shell's dark <body> background is neutralised beneath it.
    ========================================================= */
 
 :root {
@@ -39,13 +45,37 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
-body {
+/* Ported from the canonical sheet's `body` rule. The landing owns this
+   wrapper; the app shell keeps its own <body> styling untouched. */
+.btg-landing {
+  /* next/font exposes its families as variables on this element, so the two
+     font tokens are re-declared here where those variables are in scope.
+     Declaring them on :root leaves var(--font-inter) unresolved. */
+  --font-display: var(--font-space-grotesk), "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: var(--font-inter), "Inter", "Helvetica Neue", Arial, sans-serif;
+
   margin: 0;
   font-family: var(--font-body);
   color: var(--indigo);
   background: var(--ice);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+body:has(.btg-landing) {
+  background: var(--ice);
+  color: var(--indigo);
+}
+
+/* The shell's ambient gradient must not bleed through the light landing. */
+body:has(.btg-landing)::before {
+  content: none;
+}
+
+/* The shell sets a dark color-scheme on <html>; the landing is light. */
+html:has(.btg-landing) {
+  color-scheme: light;
 }
 
 h1, h2, h3, h4 {
@@ -461,6 +491,11 @@ ul { margin: 0; padding: 0; list-style: none; }
   color: var(--indigo);
   cursor: pointer;
 }
+/* Tailwind's preflight gives buttons `font: inherit`, which hands them the
+   landing's 1.55 line-height. The canonical page left buttons on the UA
+   default, so FAQ rows measured 58px rather than 65px. Restored here. */
+.btg-landing button { line-height: normal; }
+
 .faq-icon { position: relative; width: 18px; height: 18px; flex-shrink: 0; }
 .faq-icon::before, .faq-icon::after {
   content: "";
@@ -479,7 +514,10 @@ ul { margin: 0; padding: 0; list-style: none; }
   padding: 0 22px;
   transition: max-height 0.25s ease, padding 0.25s ease;
 }
-.faq-item.is-open .faq-answer { padding: 0 22px 20px; }
+/* Adapted: the canonical sheet left max-height to a JS scrollHeight
+   measurement. React toggles `is-open` instead, so the open height lives
+   here. Transition and easing are unchanged. */
+.faq-item.is-open .faq-answer { max-height: 32rem; padding: 0 22px 20px; }
 .faq-answer p { margin: 0; font-size: 0.95rem; }
 
 /* ---------- Footer ---------- */
