@@ -10,23 +10,32 @@ Classification: `IMPLEMENTED` (UI → action → service → DB → authz → au
 | `/sign-in` | IMPLEMENTED | Resolves destination from persisted state, not a fixed `/dashboard` |
 | `/auth/callback` | IMPLEMENTED | Exchanges the email-confirmation code for a session |
 | `/onboarding` | IMPLEMENTED | 4 steps, atomic DB command, forward-only state machine |
-| `/dashboard` | IMPLEMENTED | Every card sourced from a W01 engine; no invented metrics |
+| `/dashboard` | IMPLEMENTED | Every card sourced from a canonical engine, including the E17 outcome funnel; no invented metrics |
 | `/organizations` | IMPLEMENTED | Capability-gated; atomic provisioning with a founder membership |
 | `/baseline` | IMPLEMENTED | Adaptive probe, one question per view, resumes where it stopped |
 | `/baseline/results` | IMPLEMENTED | Gap diagnosis from the `learner_competency_gaps` read model |
-| `/pathway` | MISSING | W03 — Pathway Engine. Gate registered, `implemented: false` |
-| `/learn/*`, `/tutor` | MISSING | W04 |
-| `/projects/*`, `/challenges/*` | MISSING | W05 |
-| `/evidence/*`, `/review/*`, `/credentials/*` | MISSING | W06 |
-| `/mentorship/*`, `/community/*` | MISSING | W07 |
-| `/opportunities/*`, `/applications/*` | MISSING | W08 |
-| `/portal/*` (university, employer, sponsor) | MISSING | W09 |
-| `/console/*`, `/analytics/*` | MISSING | W10 |
+| `/pathway` | IMPLEMENTED | Generated plan, per-step status, blocking steps and rationale |
+| `/pathway/[stepId]` | IMPLEMENTED | Step detail with its modules and activities |
+| `/tutor` | IMPLEMENTED | Governed tutor; every turn recorded with its policy version and outcome |
+| `/projects` | IMPLEMENTED | Assignable briefs and the learner's own projects |
+| `/projects/[projectId]` | IMPLEMENTED | Brief, rubric, evidence submission |
+| `/review` | IMPLEMENTED | Reviewer queue, capability-gated |
+| `/review/[reviewId]` | IMPLEMENTED | Rubric-bound decision with required rationale |
+| `/portfolio` | IMPLEMENTED | Verified skills and issued credentials with their chain |
+| `/opportunities` | IMPLEMENTED | Explainable matches, disclosure-controlled apply, offer response |
+| `/mentorship` | IMPLEMENTED | Explained recommendations, request and response |
+| `/outcomes` | IMPLEMENTED | E17 funnel and ledger timeline; every figure traced to a record |
+| `/console/*`, `/analytics/*` | MISSING | Operator console and org analytics UI. `cohort_outcomes` exists and is certified; no page consumes it yet |
+| `/portal/*` (university, employer, sponsor) | MISSING | Partner portals. Organization membership and the application pipeline are implemented; `/organizations` is the surface |
+| `/community/*` | MISSING | No discussion or peer surface. Cohort aggregates only |
+| `/credentials/[id]` (public verification) | MISSING | Credentials are issued and visible to their holder; no public verification page |
 
-No route structure was invented for an unbuilt wave. The unbuilt stages exist
-only as registered gates in `src/domain/identity/journey.ts`, which the
-resolver skips while `implemented` is false — so nothing routes to a 404 and
-shipping a wave flips one flag.
+No route structure was invented for an unbuilt surface. Every journey gate in
+`src/domain/identity/journey.ts` now points at an implemented route; the
+`implemented` flag and the invariant test that guards it remain, so a future
+gate can be registered before its route exists without routing anyone to a 404.
+`learnerOnly` gates are skipped for a non-learner persona, so a reviewer is
+never trapped on `/baseline`.
 
 ## Navigation
 

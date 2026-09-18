@@ -489,3 +489,76 @@ export interface TutorTurnRow {
   refusal_reason: string | null;
   created_at: string;
 }
+
+// ------------------------------------------------------- W05 — E17 outcomes ---
+
+/** Canonical lifecycle outcomes, ordered by the stage they represent. */
+export const OUTCOME_STAGES = [
+  "joined",
+  "onboarded",
+  "baseline_measured",
+  "pathway_generated",
+  "step_started",
+  "module_completed",
+  "step_completed",
+  "project_assigned",
+  "project_completed",
+  "evidence_submitted",
+  "skill_verified",
+  "credential_issued",
+  "mentor_match_created",
+  "opportunity_match_created",
+  "opportunity_applied",
+  "opportunity_progressed",
+  "opportunity_offered",
+  "opportunity_accepted",
+] as const;
+
+export type OutcomeStage = (typeof OUTCOME_STAGES)[number];
+
+export interface LearnerOutcomeRow {
+  profile_id: string;
+  competencies_measured: number;
+  competencies_from_evidence: number;
+  active_pathways: number;
+  pathway_steps_total: number;
+  pathway_steps_completed: number;
+  modules_completed: number;
+  activities_completed: number;
+  projects_started: number;
+  projects_completed: number;
+  evidence_submitted: number;
+  skills_verified: number;
+  credentials_live: number;
+  mentorships_active: number;
+  opportunity_matches: number;
+  applications_open: number;
+  offers_received: number;
+  offers_accepted: number;
+  last_progress_at: string | null;
+}
+
+export interface OutcomeTimelineRow {
+  id: string;
+  profile_id: string;
+  action: string;
+  object_type: string;
+  object_id: string | null;
+  occurred_at: string;
+  severity: "info" | "notice" | "warning" | "critical";
+  detail: Json;
+  outcome: OutcomeStage;
+  stage: number;
+}
+
+export interface CohortOutcomeRow {
+  learners: number;
+  with_baseline: number;
+  with_pathway: number;
+  with_completed_project: number;
+  with_verified_skill: number;
+  with_credential: number;
+  with_application: number;
+  with_offer: number;
+  median_skills_verified: number | null;
+}

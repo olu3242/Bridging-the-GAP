@@ -126,6 +126,46 @@ test.describe("golden journey", () => {
     await expect(page).toHaveURL(/\/baseline$/);
   });
 
+  test("outcomes report measured records, never a projection", async ({ page }) => {
+    const email = `e2e-outcomes-${Date.now()}@btg.test`;
+
+    await page.goto("/join");
+    await page.getByLabel("Name").fill("Outcome Learner");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill("btg-e2e-password");
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    await page.getByLabel("Display name").fill("Outcome Learner");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("radio", { name: /Learner/ }).check();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByLabel("Your main goal").fill("Prove what I can do");
+    await page.getByLabel("Hours per week").fill("8");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: /Finish/ }).click();
+
+    // Sit the baseline so there is something real to report.
+    await expect(page).toHaveURL(/\/baseline$/);
+    await page.getByRole("button", { name: /Start the baseline/ }).click();
+    for (let i = 0; i < 20; i += 1) {
+      if (!page.url().includes("/baseline") || page.url().includes("/results")) break;
+      const options = page.locator('input[name="option"]');
+      if ((await options.count()) === 0) break;
+      await options.first().check();
+      await page.getByRole("button", { name: "Continue" }).click();
+      await page.waitForLoadState("networkidle");
+    }
+
+    await page.goto("/outcomes");
+    await expect(page.getByRole("heading", { name: "Your outcomes" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Skill to opportunity/ })).toBeVisible();
+    // The milestone list is read from the ledger, so a just-measured baseline
+    // must already appear in it.
+    await expect(page.getByText("Baseline measured").first()).toBeVisible();
+    // Nothing is claimed that has not happened: no credential yet.
+    await expect(page.getByText("Earned a credential")).toHaveCount(0);
+  });
+
   test("a partner CTA pre-selects that persona in onboarding", async ({ page }) => {
     const email = `e2e-partner-${Date.now()}@btg.test`;
 
@@ -170,7 +210,7 @@ test.describe("route regression", () => {
   // session to read, so it cannot decide anything.
   test("protected routes redirect an anonymous visitor to sign in", async ({ page }) => {
     test.skip(!supabaseConfigured, "The session proxy needs a configured Supabase project.");
-    for (const route of ["/dashboard", "/onboarding", "/organizations"]) {
+    for (const route of ["/dashboard", "/onboarding", "/organizations", "/outcomes"]) {
       await page.goto(route);
       await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=%2F${route.slice(1)}`));
     }

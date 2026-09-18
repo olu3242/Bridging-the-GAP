@@ -1,29 +1,34 @@
 # BTG AI — Engine Certification
 
-Certification: `READY` (traced UI → route → action → service → DB → authz →
-transition → audit → visible outcome), `READY_WITH_GAPS`, `BLOCKED`, `MISSING`.
+Certification: `INTEGRATED` (traced UI → route → action → service → DB → authz
+→ transition → audit → visible outcome, certified by automated tests against a
+real Postgres cluster), `READY_WITH_GAPS`, `BLOCKED`, `MISSING`.
 
-Engine IDs follow the repository's existing canonical set (E1–E16 in
-`BTG_AI_CANONICAL.md`); the request's E01–E15 numbering maps onto it below.
+`LIVE_CERTIFIED` is reserved for engines re-run against a live Supabase project
+in an authenticated browser. No engine holds it yet: no Supabase project is
+attached to this repository.
+
+Engine IDs follow the repository's canonical set in `BTG_AI_CANONICAL.md`.
 
 | Engine | Status | UI | Backend | DB | Authz | Evidence/Audit | E2E | Gap |
 |---|---|---|---|---|---|---|---|---|
-| E1 Identity & Access | READY | yes | yes | yes | yes | yes | partial | Browser journey unrun without Supabase |
-| E2 Learner Profile | READY_WITH_GAPS | yes | yes | yes | yes | yes | partial | Goals only; interests, availability, career prefs are W02 |
-| E3 Diagnostic (baseline) | READY_WITH_GAPS | yes | yes | yes | yes | yes | partial | Adaptive probe resolves levels 0/1/2/4 only; re-assessment scheduling and operator authoring UI are later waves; browser E2E written but unrun |
-| E4 Competency Graph | READY_WITH_GAPS | yes | yes | yes | yes | yes | partial | Graph, levels, prerequisites and gap read model done; taxonomy authoring UI is W10 |
-| E5 Pathway | MISSING | — | — | — | — | — | — | Whole engine — W03 |
-| E6 Learning | MISSING | — | — | — | — | — | — | Whole engine — W04 |
-| E7 AI Tutor | MISSING | — | — | — | — | — | — | Whole engine — W04. Governance rules recorded, unenforced because no tutor exists |
-| E8 Project | MISSING | — | — | — | — | — | — | Whole engine — W05 |
-| E9 Evidence & Verification | MISSING | — | — | — | — | — | — | Whole engine — W06 |
-| E10 Credential | MISSING | — | — | — | — | — | — | Whole engine — W06 |
-| E11 Mentorship | MISSING | — | — | — | — | — | — | Whole engine — W07 |
-| E12 Opportunity | MISSING | — | — | — | — | — | — | Whole engine — W08 |
-| E13 Recommendation & Matching | MISSING | — | — | — | — | — | — | Whole engine — W08 |
-| E14 Community | MISSING | — | — | — | — | — | — | Whole engine — W07 |
-| E15 Progress & Outcome | MISSING | — | — | — | — | — | — | Whole engine — W09/W10 |
-| E16 Governance & Intelligence | READY_WITH_GAPS | yes | yes | yes | yes | yes | yes | Audit + lifecycle events done; anonymous pre-auth analytics, rate limiting, error reporting are W10 |
+| E1 Identity & Access | INTEGRATED | yes | yes | yes | yes | yes | db + browser (browser unrun without Supabase) | Live browser journey unrun |
+| E2 Learner Profile | INTEGRATED | yes | yes | yes | yes | yes | db | Interests, availability and career preferences still out of scope |
+| E3 Diagnostic (baseline) | INTEGRATED | yes | yes | yes | yes | yes | db + browser | Probe resolves levels 0/1/2/4 only; operator authoring UI not built |
+| E4 Competency Graph | INTEGRATED | yes | yes | yes | yes | yes | db | Taxonomy authoring UI not built |
+| E5 Pathway | INTEGRATED | yes | yes | yes | yes | yes | db | — |
+| E6 Learning | INTEGRATED | yes | yes | yes | yes | yes | db | Content is seed-scale (8 modules) |
+| E7 AI Tutor | INTEGRATED | yes | yes | yes | yes | yes | db + domain | Provider calls unexercised live; refusal and fallback paths certified deterministically |
+| E8 Project | INTEGRATED | yes | yes | yes | yes | yes | db | — |
+| E9 Evidence & Verification | INTEGRATED | yes | yes | yes | yes | yes | db | File upload path certified by contract, not by a live object store |
+| E10 Credential | INTEGRATED | yes | yes | yes | yes | yes | db | Public credential verification page not built |
+| E11 Mentorship | INTEGRATED | yes | yes | yes | yes | yes | db | Session scheduling is a record, not a calendar integration |
+| E12 Opportunity | INTEGRATED | yes | yes | yes | yes | yes | db | Employer-side opportunity authoring UI not built (operator-writable only) |
+| E13 Recommendation & Matching | INTEGRATED | yes | yes | yes | yes | yes | db | — |
+| E14 Community | READY_WITH_GAPS | — | yes | yes | yes | yes | db | Cohort aggregates only; no discussion or peer surface |
+| E15 Application pipeline | INTEGRATED | yes | yes | yes | yes | yes | db | Employer pipeline UI is the organizations surface; no dedicated ATS view |
+| E16 Governance & Intelligence | INTEGRATED | yes | yes | yes | yes | yes | db | Pre-authentication analytics, rate limiting and error reporting still out of scope |
+| E17 Outcomes & Analytics | INTEGRATED | yes | yes | yes | yes | yes | db + browser | Cohort aggregate surface has no UI yet; the function is certified |
 
 ## Engine contracts — the implemented engines
 
@@ -88,25 +93,66 @@ Two questions per competency: an opener at level 2, then level 4 if that was rig
 - **Lifecycle events captured** — `account_created`, `onboarding_started`, `onboarding_completed`, plus organization and membership changes.
 - **Gap** — `landing_viewed` and `join_started` are pre-authentication and have no actor, so they need an anonymous-writable events table with its own abuse controls. Not built; deliberately not faked through the audit ledger.
 
-## AI Tutor governance (recorded, not yet enforceable)
+### E5 — Pathway Engine
 
-No tutor exists, so there is nothing to govern yet. The constraints are
-recorded here so W04 implements against them: the tutor may explain, question,
-hint, critique and recommend; it must never submit graded work, fabricate
-assessment results, mark a skill verified, bypass human review, or create a
-credential without evidence. Every material tutor action writes an audit event
-carrying the actor, the approved context, the instruction version and the
-structured output that passed schema validation.
+- **Trigger** — a scored diagnostic. **Tables** — `pathways`, `pathway_steps`, `pathway_step_dependencies`.
+- **Rules** — one active pathway per learner (partial unique index); regeneration supersedes the previous plan before activating the new one, never the reverse; step order comes from the competency graph's prerequisite edges, so a step is only unlocked when what it depends on is complete.
+- **Read model** — `pathway_step_view`, `security_invoker`, carrying status, depth, blocking steps and the rationale for each step.
+- **Evidence** — `pathway.pathway.generated`, `pathway.step.started`, `pathway.step.completed`.
 
-## Verification chain (design fixed, unbuilt)
+### E6 — Learning Engine
 
-`skill → evidence → rubric → review → decision → verified skill → credential`,
-capturing evidence source, submitter, timestamps, reviewer, rubric, decision,
-rationale, status and supersession history. No model-only verification. W06.
+- **Tables** — `learning_modules`, `learning_activities`, `learner_module_progress`, `learner_activity_completions`.
+- **Rules** — a module completes only when every one of its activities is recorded complete; progress counters are maintained by the command, never by the client.
+- **Read model** — `learner_learning_view`.
+- **Evidence** — `learning.activity.completed`, `learning.module.completed`.
 
-## Matching (design fixed, unbuilt)
+### E7 — AI Tutor Engine
 
-Matching reads persisted state only — verified skills, pathway progress,
-projects, credentials, interests, availability, mentor criteria, opportunity
-requirements — and every match exposes the inputs that produced it. No
-unexplained ranking is presented as authoritative. W08.
+- **Governance** — `src/domain/tutor/policy.ts` holds the versioned policy and instruction, the intent set, the refusal taxonomy and the output schema. Every refusal carries an alternative the learner can act on.
+- **Rules** — the tutor is given only approved context (`tutor_context`: competency, goal, measured level, module, step, activities completed) and no answer-key material; a database test asserts no `%tutor%` function body references `diagnostic_answer_keys`. `authenticated` holds no write on `verified_skills`, `credentials`, `learner_competencies` or `evidence`, so the tutor has no path to authoritative state even if its output said otherwise.
+- **Output** — `messages.parse()` against a JSON schema, then an overclaim guard. A refusal is recorded as fully as an answer; a provider failure degrades to deterministic coaching assembled only from persisted records, and says so.
+- **Transcript** — `tutor_turns` is append-only (update and delete both rejected) and carries `policy_version`, `instruction_version`, `model` and `ordinal`.
+- **Evidence** — `tutor.session.opened`, `tutor.turn.<outcome>`; a refusal audits at `notice`, an answer at `info`.
+
+### E8–E10 — Project, Evidence, Verification, Credential
+
+- **Chain** — `skill → project → evidence → rubric → review → decision → verified skill → credential`, each link persisted with its actor and timestamp.
+- **Rules** — no model-only verification: a `verified_skill` exists only downstream of a human reviewer's decision. A reviewer cannot review their own evidence. Approval requires every required rubric criterion scored, none below 3. A new claim supersedes the previous one rather than rewriting it. A credential issues only when every required competency is verified at or above its minimum level, and records its `issuance_basis`.
+- **Visibility** — `portfolio_view` lets a learner see who reviewed their work via a narrow policy on the reviewer's profile, and nothing more.
+- **Evidence** — `project.project.assigned|started|completed`, `evidence.evidence.submitted`, `verification.review.claimed|rejected|revision_required`, `verification.skill.verified`, `credential.credential.issued|revoked`.
+
+### E11 — Mentorship Engine
+
+- **Tables** — `mentor_profiles`, `mentor_expertise`, `mentorships`, `mentor_sessions`, `mentor_session_notes`.
+- **Rules** — `recommend_mentors` explains every recommendation from the learner's measured gaps against mentor expertise. A mentor's private notes live in `mentor_session_notes` behind a row policy, because a column-level grant would have hidden them from the mentor who wrote them.
+- **Evidence** — `mentorship.mentorship.requested|accepted|declined`.
+
+### E12/E13/E15 — Opportunity, Matching, Application pipeline
+
+- **Matching** — `btg.compute_opportunity_matches` reads persisted state only and every match enumerates both `matched` and `missing` with a stated reason per factor. A measured-but-unverified competency is reported as exactly that. Matches recompute on a new verified skill by trigger.
+- **Disclosure** — an application shares only the verified skills the learner named; `application_evidence_view` shows an employer those skills with their verification chain and nothing else about the learner.
+- **Pipeline** — `advance_application` moves the hiring organization's own pipeline (`under_review`, `shortlisted`, `offered`, `rejected`) and re-authorizes the caller against the opportunity's organization; a rejection requires a reason the applicant can read. `respond_to_offer` is the applicant's alone: an organization attempting `accepted` is refused with `42501`. Every move notifies the other side.
+- **Evidence** — `matching.matches.computed`, `opportunity.application.submitted|under_review|shortlisted|offered|rejected|accepted|withdrawn`.
+
+### E17 — Outcomes & Analytics
+
+- **Principle** — no new store and no vendor. Every figure is derived from the canonical table that owns the state or from the audit ledger that recorded the transition.
+- **Read models** — `learner_outcome_view` (`security_invoker`; the caller's own funnel from baseline to accepted offer) and `outcome_timeline_view` (the ledger's lifecycle actions mapped to a stable stage name and ordinal, so a UI never hardcodes an action string). A database test asserts the view's published stage names match `OUTCOME_STAGES` in TypeScript exactly.
+- **Cohort aggregates** — `cohort_outcomes(cohort_id)` is a definer function, deliberately not a view over `learner_outcome_view`: a `security_invoker` view would have returned silent zeros to an organization admin, and fixing that with broad cross-learner read policies would be a privacy regression. It authorizes the caller against the cohort's organization, returns aggregates only, and refuses a cohort of fewer than five learners because an aggregate over a handful identifies the individual.
+- **Project completion** — recorded by an `after update` trigger on `public.projects`, so the event follows the transition wherever it is driven from rather than only from today's one caller.
+- **Dashboard rule** — the dashboard's outcome panel reads `learner_outcome_view`. The previous "what unlocks next" panel, which described shipped waves as unbuilt, was removed rather than left to drift.
+
+## Remaining gaps, stated plainly
+
+- No Supabase project is attached, so the browser journey specs and every RLS
+  path exercised through PostgREST remain certified against a local Postgres
+  cluster rather than live. This is the only thing between `INTEGRATED` and
+  `LIVE_CERTIFIED`.
+- E14 Community is a cohort aggregate surface only. There is no discussion,
+  peer review or social surface, and none is faked.
+- Pre-authentication analytics (`landing_viewed`, `join_started`) have no actor,
+  so they would need an anonymous-writable events table with its own abuse
+  controls. Not built, and deliberately not forced through the audit ledger.
+- Evidence file upload is certified by contract against `file_objects`; no live
+  object store has been exercised.

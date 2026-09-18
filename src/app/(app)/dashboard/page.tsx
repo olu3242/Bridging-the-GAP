@@ -11,6 +11,8 @@ import { getLearnerProfile, getProfile } from "@/server/services/onboarding-serv
 import { listNotifications } from "@/server/services/notification-service";
 import { listOrganizationsForActor } from "@/server/services/organization-service";
 import { getCompetencyGaps } from "@/server/services/diagnostic-service";
+import { getLearnerOutcomes } from "@/server/services/outcomes-service";
+import { FUNNEL_STEPS } from "@/domain/outcomes/stages";
 import { compareByPriority, gapSeverity, GAP_SEVERITY_COPY, LEVEL_LABELS, type CompetencyLevel } from "@/domain/competency/levels";
 import { markNotificationReadAction } from "@/server/actions/notifications";
 import { PERSONA_LABELS } from "@/domain/identity/persona";
@@ -20,12 +22,6 @@ import type { AuditEventRow } from "@/lib/db/types";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-/** Waves that are not built yet are described, never faked as a metric. */
-const UPCOMING = [
-  { wave: "W03", title: "Personalized pathway", body: "A plan generated from your baseline, not a template." },
-  { wave: "W04", title: "Learning + AI tutor", body: "Lessons, practice and a tutor that questions rather than answers." },
-];
-
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -34,20 +30,23 @@ export default async function DashboardPage({
   const [{ welcome }, actor] = await Promise.all([searchParams, requireActor()]);
   const supabase = await createSupabaseServerClient();
 
-  const [profile, learnerProfile, notifications, organizations, gaps, auditResult] = await Promise.all([
+  const [profile, learnerProfile, notifications, organizations, gaps, outcomes, auditResult] =
+    await Promise.all([
     getProfile(supabase, actor.profileId),
     getLearnerProfile(supabase, actor.profileId),
     listNotifications(supabase, actor.profileId),
     listOrganizationsForActor(supabase),
     getCompetencyGaps(supabase, actor.profileId),
+    getLearnerOutcomes(supabase, actor.profileId),
     supabase
       .from("audit_events")
       .select("id, action, object_type, occurred_at")
       .eq("actor_profile_id", actor.profileId)
       .order("occurred_at", { ascending: false })
       .limit(6),
-  ]);
+    ]);
 
+  const outcomeCounts = outcomes as unknown as Record<string, number> | null;
   const onboardingState = profile?.onboarding_state ?? "not_started";
   const onboardingComplete = onboardingState === "completed";
   const auditEvents = (auditResult.data ?? []) as Pick<
@@ -269,19 +268,39 @@ export default async function DashboardPage({
         </Card>
       </div>
 
-      <section aria-labelledby="next" className="space-y-3">
-        <h2 id="next" className="text-sm font-medium uppercase tracking-[0.18em] text-ink-subtle">
-          What unlocks next
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {UPCOMING.map((item) => (
-            <div key={item.wave} className="rounded-2xl border border-dashed border-white/12 p-4">
-              <p className="font-mono text-xs text-ink-subtle">{item.wave}</p>
-              <p className="mt-1 text-sm font-medium text-ink">{item.title}</p>
-              <p className="mt-1 text-xs text-ink-subtle">{item.body}</p>
-            </div>
-          ))}
+      <section aria-labelledby="outcomes" className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2
+            id="outcomes"
+            className="text-sm font-medium uppercase tracking-[0.18em] text-ink-subtle"
+          >
+            How far your work has carried
+          </h2>
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/outcomes">
+              Full breakdown <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          </Button>
         </div>
+        {outcomeCounts === null ? (
+          <p className="rounded-2xl border border-dashed border-white/12 p-4 text-sm text-ink-subtle">
+            Your outcome funnel fills from your own records as you move through the platform.
+          </p>
+        ) : (
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {FUNNEL_STEPS.map((step) => (
+              <div
+                key={step.key}
+                className="rounded-2xl border border-white/8 bg-white/[0.03] p-4"
+              >
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">{step.label}</dt>
+                <dd className="mt-1 text-2xl font-semibold tabular-nums text-ink">
+                  {outcomeCounts[step.field] ?? 0}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </section>
     </div>
   );

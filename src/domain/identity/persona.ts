@@ -65,6 +65,7 @@ export const CAPABILITIES = [
   "credential.read_own",
   "review.decide",
   "opportunity.apply_own",
+  "opportunity.manage_pipeline",
   "mentorship.request_own",
   "mentorship.mentor_own",
   "mentor.workspace.view",
@@ -76,6 +77,8 @@ export const CAPABILITIES = [
   "audit.read_own",
   "audit.read_org",
   "audit.read_all",
+  "outcomes.read_own",
+  "outcomes.read_org",
   "platform.govern",
 ] as const;
 
@@ -89,6 +92,7 @@ const SELF_SERVICE: readonly Capability[] = [
   "notification.read_own",
   "file.upload_own",
   "audit.read_own",
+  "outcomes.read_own",
 ];
 
 export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
@@ -113,6 +117,7 @@ export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
     ...SELF_SERVICE,
     "institution.portal.view",
     "organization.read",
+    "outcomes.read_org",
     "organization.manage",
     "membership.invite",
     "membership.manage",
@@ -122,6 +127,8 @@ export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
     ...SELF_SERVICE,
     "employer.portal.view",
     "organization.read",
+    "outcomes.read_org",
+    "opportunity.manage_pipeline",
     "organization.manage",
     "membership.invite",
     "membership.manage",
@@ -131,6 +138,7 @@ export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
     ...SELF_SERVICE,
     "sponsor.portal.view",
     "organization.read",
+    "outcomes.read_org",
     "organization.manage",
     "membership.invite",
     "membership.manage",

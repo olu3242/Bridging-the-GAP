@@ -111,9 +111,91 @@ Next execution:  W03 — Pathway Engine, Batch A+B
 - `diagnostic_responses.is_correct` is withheld by **column-level grant**, so a learner can see what they answered but not how it was graded. RLS filters rows, not columns, which is why a column grant is the right tool here.
 - Attempts, responses and `learner_competencies` have no direct INSERT/UPDATE for `authenticated`: the five commands are the only write path, so a learner cannot forge a competency level.
 
-## Waves W03 – W10
+## Batched execution — E5 through E17 (W03 – W10 scope)
 
-All `NOT_STARTED`. Engine-by-engine certification: `BTG_AI_ENGINES.md`.
+From here the work ran as dependency-ordered batches rather than one wave per
+prompt. Each batch is one or more commits on the same branch.
+
+```
+Scope:           E5 pathway, E6 learning, E7 AI tutor, E8 projects,
+                 E9 evidence/verification, E10 credentials, E11 mentorship,
+                 E12 opportunities, E13 matching, E14 cohort aggregates,
+                 E15 application pipeline, E17 outcomes/analytics
+Status:          INTEGRATED
+Certification:   BTG_AI_E2E_INTEGRATED (pending live Supabase for LIVE_CERTIFIED)
+Schema:          +20 migrations, 20260918001600 → 20260918003500
+                 (35 migrations total, 20260918000100 → 20260918003500)
+Implementation:  /pathway, /pathway/[stepId], /tutor, /projects,
+                 /projects/[projectId], /review, /review/[reviewId],
+                 /portfolio, /opportunities, /mentorship, /outcomes;
+                 dashboard outcome funnel replacing the stale "what unlocks
+                 next" panel
+Tests:           265/265 vitest (73 domain, 192 database/RLS),
+                 14/14 Playwright (7 skipped: need Supabase)
+Failures:        none
+Defects repaired: 13 across the batches (see below)
+External blockers: Supabase project still unprovisioned. The browser journey
+                 specs and the PostgREST request path remain unrun; nothing is
+                 LIVE_CERTIFIED
+```
+
+### Batch 1 — E5 pathway, E6 learning
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 1 | Pathway regeneration violated `pathways_one_active` | The new plan was activated before the old one was superseded | Supersede first, then activate |
+| 2 | A superseded plan could not keep `activated_at` | `pathways_active_consistency` was written as an equivalence | Loosened to an implication: active ⇒ activated, not the converse |
+| 3 | A journey test asserted that unimplemented gates exist | Obsolete once every gate shipped | Rewritten as an invariant that still guards a future `implemented: false` gate |
+
+### Batch 2 — E8 projects, E9 evidence, E10 credentials
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 4 | `submit_evidence` moved a project `assigned → submitted`, which the registry forbids | The command skipped `started` | Route through `started` |
+| 5 | A reviewer's decision could not notify the learner | `enqueue_notification` refuses notifying another profile — right for a client, wrong for a governed command | Added `btg.notify`, internal, **not** granted to `authenticated` |
+| 6 | A verified skill rendered as no skill at all | `portfolio_view` is `security_invoker` and joins the reviewer's profile, which a learner cannot read, so the join filtered every row out | Narrow policy `profiles_select_reviewer_of_own_evidence` + a leak-regression test |
+| 7 | A reviewer was trapped on `/baseline` | Journey gates applied to every persona | `learnerOnly` gates, skipped when `primary_persona` is not `learner` |
+| 8 | Three Batch 1 tests asserted a learning-only completion rule | Obsolete: Batch 2 replaced the rule intentionally | Updated to the new contract |
+
+### Batch 3 — E11 mentorship, E12 opportunities, E13 matching
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 9 | `mentor_notes` hidden by a column grant would also have been hidden from the mentor who wrote it | Column grants apply to the role, not the row | Moved to `mentor_session_notes` behind a row policy |
+| 10 | TypeScript allowed `opportunity: draft → archived`, the registry did not | Drift between the two, caught by the parity test | Transition added to the registry |
+
+### Batch 4 — E7 AI tutor
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 11 | `pathwaySteps` test helper could not assert the competency a tutor session binds to | The helper did not select `competency_id`, which the view does expose | Helper widened rather than the assertion weakened |
+
+### Batch 5 — E15 application pipeline, E17 outcomes
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 12 | The application state machine declared the employer-side transitions but no command drove them, so an application could only ever be submitted or withdrawn — an outcome funnel with no way to reach an outcome | Missing commands | `advance_application` (organization side, re-authorized against the opportunity's organization, rejection requires a readable reason) and `respond_to_offer` (the applicant's alone; an organization attempting `accepted` is refused `42501`) |
+| 13 | A project reached `completed` inside `decide_review` with no event of its own | The only recorded fact was `verification.skill.verified` | `after update` trigger on `public.projects` emitting `project.project.completed`, so the event follows the transition wherever it is driven from |
+
+### E17 design decisions worth knowing
+
+- No new store and no vendor: every figure is derived from the canonical table that owns the state, or from the audit ledger that recorded the transition.
+- `cohort_outcomes` is a definer function, **not** a `security_invoker` view over `learner_outcome_view`. The view form would have returned silent zeros to an organization admin (defect 6's class), and fixing that with broad cross-learner read policies would be a privacy regression. It authorizes against the cohort's organization, returns aggregates only, and refuses a cohort of fewer than five learners because an aggregate over a handful identifies the individual.
+- A database test asserts that the stage names published by `outcome_timeline_view` match `OUTCOME_STAGES` in TypeScript exactly, so the ledger and the UI cannot drift into a blank label.
+
+### Cross-engine convergence
+
+`tests/db/journey.test.ts` walks one learner through every engine using the
+real commands only — no direct writes, no fixtures inserted behind the domain —
+from sign-up to an accepted offer, and asserts each engine's output from the
+record the previous engine produced: onboarding completed → baseline measured →
+pathway traceable to that attempt → module completed → three projects proven →
+`ai-foundations-certificate` issued with its `issuance_basis` → the verified
+level outranking the diagnostic estimate → a non-zero enumerated match →
+application advanced to offered → accepted → the outcome funnel and ledger
+timeline agreeing with all of it.
+
+Engine-by-engine certification: `BTG_AI_ENGINES.md`.
 Route classification: `BTG_AI_ROUTES.md`.
 
 ## How to reproduce the certification
@@ -121,7 +203,7 @@ Route classification: `BTG_AI_ROUTES.md`.
 ```bash
 npm install
 npm run db:local:up     # Postgres 16 cluster + all migrations
-npm run test:all        # 75 tests: domain + database/RLS
+npm run test:all        # 265 tests: domain + database/RLS
 npm run build
 BTG_E2E_CHROMIUM=/opt/pw-browsers/chromium npx playwright test
 ```

@@ -26,17 +26,30 @@ Mentor → Match → Apply → Progress → Reassess
 Next 16 renamed the middleware convention: request-level session handling lives
 in `src/proxy.ts`, not `src/middleware.ts`.
 
-## Engine boundaries (E1–E16)
+## Engine boundaries (E1–E17)
 
-Engines are directories, not folders of convenience. W01 implements E1, the
-minimum of E2, and the foundations of E16.
+Engines are directories, not folders of convenience. Per-engine certification
+lives in `BTG_AI_ENGINES.md`; this table is the map of where each one lives.
 
-| Engine | Status after W01 | Home |
-|---|---|---|
-| E1 Identity & Access | Implemented | `src/domain/identity`, `supabase/migrations/*identity*`, `*authorization_rls*` |
-| E2 Learner Profile | Minimum surface (goals captured at onboarding) | `learner_profiles`, `src/domain/identity/onboarding.ts` |
-| E3–E15 | Not started | — |
-| E16 Governance | Audit ledger + notification foundation | `audit_events`, `src/server/services/audit-service.ts` |
+| Engine | Home |
+|---|---|
+| E1 Identity & Access | `src/domain/identity`, `*identity*`, `*authorization_rls*` |
+| E2 Learner Profile | `learner_profiles`, `src/domain/identity/onboarding.ts` |
+| E3 Diagnostic | `*diagnostic*`, `src/domain/diagnostic`, `src/server/services/diagnostic-service.ts` |
+| E4 Competency Graph | `*competency_graph*`, `src/domain/competency` |
+| E5 Pathway | `*pathway*`, `src/server/services/pathway-service.ts` |
+| E6 Learning | `*learning*`, `src/components/app/learning-module.tsx` |
+| E7 AI Tutor | `*tutor*`, `src/domain/tutor/policy.ts`, `src/server/services/tutor-service.ts` |
+| E8 Project | `*projects_evidence*`, `src/server/services/project-service.ts` |
+| E9 Evidence & Verification | `*verification*`, `src/server/services/review-service.ts` |
+| E10 Credential | `credentials`, `credential_definitions`, `btg.issue_eligible_credentials` |
+| E11 Mentorship | `*mentorship*`, `src/server/services/mentorship-service.ts` |
+| E12 Opportunity | `opportunities`, `opportunity_requirements` |
+| E13 Recommendation & Matching | `*matching*`, `btg.compute_opportunity_matches` |
+| E14 Community | `cohorts`, `cohort_members` (aggregate surface only) |
+| E15 Application pipeline | `applications`, `advance_application`, `respond_to_offer` |
+| E16 Governance & Intelligence | `audit_events`, `src/server/services/audit-service.ts` |
+| E17 Outcomes & Analytics | `*outcomes*`, `src/domain/outcomes`, `src/server/services/outcomes-service.ts` |
 
 ## Landing page
 

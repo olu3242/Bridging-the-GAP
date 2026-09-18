@@ -84,3 +84,45 @@ export async function listShareableSkills(
   if (error) throw fromPostgresError(error, "We could not load your verified skills.");
   return (data ?? []) as PortfolioRow[];
 }
+
+/** Employer side of the pipeline. The database authorizes against the
+ *  opportunity's organization and the transition registry decides the move. */
+export async function advanceApplication(
+  supabase: SupabaseClient,
+  input: { applicationId: string; status: ApplicationRow["status"]; note?: string },
+): Promise<ApplicationRow> {
+  const { data, error } = await supabase.rpc("advance_application", {
+    p_application_id: input.applicationId,
+    p_status: input.status,
+    p_note: input.note ?? null,
+  });
+  if (error) throw fromPostgresError(error, "We could not move that application.");
+  return data as ApplicationRow;
+}
+
+/** Only the applicant may answer an offer. */
+export async function respondToOffer(
+  supabase: SupabaseClient,
+  input: { applicationId: string; accept: boolean },
+): Promise<ApplicationRow> {
+  const { data, error } = await supabase.rpc("respond_to_offer", {
+    p_application_id: input.applicationId,
+    p_accept: input.accept,
+  });
+  if (error) throw fromPostgresError(error, "We could not record your answer.");
+  return data as ApplicationRow;
+}
+
+/** The applications an organization admin may act on, newest first. */
+export async function listApplicationsForOpportunity(
+  supabase: SupabaseClient,
+  opportunityId: string,
+): Promise<ApplicationRow[]> {
+  const { data, error } = await supabase
+    .from("applications")
+    .select("*")
+    .eq("opportunity_id", opportunityId)
+    .order("submitted_at", { ascending: false });
+  if (error) throw fromPostgresError(error, "We could not load those applications.");
+  return (data ?? []) as ApplicationRow[];
+}

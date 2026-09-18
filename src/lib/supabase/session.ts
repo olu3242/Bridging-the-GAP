@@ -18,6 +18,7 @@ const PROTECTED_PREFIXES = [
   "/opportunities",
   "/mentorship",
   "/tutor",
+  "/outcomes",
 ];
 /** Routes a signed-in learner should never sit on. */
 const AUTH_PREFIXES = ["/sign-in", "/join"];

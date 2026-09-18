@@ -8,6 +8,7 @@ import {
   Hammer,
   LayoutDashboard,
   Route,
+  TrendingUp,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/baseline/results", label: "Baseline", icon: Gauge, capability: "profile.read_own" },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase, capability: "opportunity.apply_own" },
   { href: "/mentorship", label: "Mentorship", icon: Users, capability: "mentorship.request_own" },
+  { href: "/outcomes", label: "Outcomes", icon: TrendingUp, capability: "outcomes.read_own" },
   { href: "/review", label: "Review queue", icon: ClipboardCheck, capability: "review.decide" },
   { href: "/organizations", label: "Organizations", icon: Building2, capability: "organization.create" },
 ];

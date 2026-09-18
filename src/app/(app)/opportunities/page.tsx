@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
 import { OpportunityMatch } from "@/components/app/opportunity-match";
 import { RefreshMatchesButton } from "@/components/app/refresh-matches-button";
+import { OfferResponse } from "@/components/app/offer-response";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
 import { assertCan } from "@/domain/identity/actor";
@@ -13,7 +14,7 @@ import {
   listOpenOpportunities,
   listShareableSkills,
 } from "@/server/services/opportunity-service";
-import { applyAction, refreshMatchesAction } from "@/server/actions/opportunities";
+import { applyAction, refreshMatchesAction, respondToOfferAction } from "@/server/actions/opportunities";
 import { formatRelative } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Opportunities" };
@@ -89,9 +90,27 @@ export default async function OpportunitiesPage({
                         {` · ${application.shared_verified_skill_ids.length} skills shared`}
                       </p>
                     </div>
-                    <Badge tone={application.status === "withdrawn" ? "neutral" : "brand"}>
-                      {application.status.replace("_", " ")}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge
+                        tone={
+                          application.status === "accepted"
+                            ? "success"
+                            : application.status === "offered"
+                              ? "warning"
+                              : application.status === "withdrawn" || application.status === "rejected"
+                                ? "neutral"
+                                : "brand"
+                        }
+                      >
+                        {application.status.replace("_", " ")}
+                      </Badge>
+                      {application.status === "offered" ? (
+                        <OfferResponse
+                          applicationId={application.id}
+                          action={respondToOfferAction}
+                        />
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}
