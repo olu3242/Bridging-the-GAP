@@ -122,3 +122,82 @@ export async function expectRejection(promise: Promise<unknown>): Promise<{ code
     return { code: pgError.code, message: pgError.message };
   }
 }
+
+// ------------------------------------------------------------- W02 helpers ---
+
+export interface WalkQuestion {
+  question_id: string;
+  competency_id: string;
+  level: number;
+  options: Array<{ id: string; label: string }>;
+}
+
+/** Reads the answer key as the cluster owner — test scaffolding only. */
+export async function correctOptionFor(questionId: string): Promise<string> {
+  const [row] = await sql<{ id: string }>(
+    "select correct_option_ids[1] as id from public.diagnostic_answer_keys where question_id = $1",
+    [questionId],
+  );
+  return row.id;
+}
+
+export async function nextQuestionFor(userId: string, attemptId: string): Promise<WalkQuestion | null> {
+  return asUser(userId, async (client) => {
+    const result = await client.query(
+      "select question_id, competency_id, level, options from public.next_diagnostic_question($1)",
+      [attemptId],
+    );
+    return (result.rows[0] as WalkQuestion) ?? null;
+  });
+}
+
+export async function startBaseline(userId: string): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.start_diagnostic_attempt()).id as id");
+    return result.rows[0].id as string;
+  });
+}
+
+/**
+ * Walks an attempt to the end, answering every question correctly or
+ * incorrectly, then submits. Returns the scored attempt.
+ */
+export async function walkBaseline(
+  userId: string,
+  options: { correctly: boolean; submit?: boolean } = { correctly: true },
+): Promise<{ attemptId: string; asked: Array<{ competency_id: string; level: number }> }> {
+  const attemptId = await startBaseline(userId);
+  const asked: Array<{ competency_id: string; level: number }> = [];
+
+  for (let guard = 0; guard < 40; guard += 1) {
+    const question = await nextQuestionFor(userId, attemptId);
+    if (!question) break;
+    const correct = await correctOptionFor(question.question_id);
+    const choice = options.correctly
+      ? correct
+      : (question.options.find((o) => o.id !== correct)?.id ?? correct);
+
+    await asUser(userId, (client) =>
+      client.query("select public.answer_diagnostic_question($1, $2, $3)", [
+        attemptId,
+        question.question_id,
+        [choice],
+      ]),
+    );
+    asked.push({ competency_id: question.competency_id, level: question.level });
+  }
+
+  if (options.submit !== false) {
+    await asUser(userId, (client) =>
+      client.query("select public.submit_diagnostic_attempt($1)", [attemptId]),
+    );
+  }
+  return { attemptId, asked };
+}
+
+/** Pushes a learner through onboarding and the baseline, as the journey does. */
+export async function completeBaselineJourney(userId: string): Promise<string> {
+  await completeOnboarding(userId);
+  const { attemptId } = await walkBaseline(userId, { correctly: true });
+  return attemptId;
+}

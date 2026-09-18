@@ -54,9 +54,34 @@ export const onboardingMachine = createStateMachine<OnboardingState>("onboarding
   completed: [],
 });
 
+export const DIAGNOSTIC_STATUSES = ["draft", "published", "archived"] as const;
+export type DiagnosticStatus = (typeof DIAGNOSTIC_STATUSES)[number];
+
+export const diagnosticMachine = createStateMachine<DiagnosticStatus>("diagnostic", {
+  draft: ["published", "archived"],
+  published: ["archived"],
+  archived: [],
+});
+
+export const ATTEMPT_STATUSES = ["in_progress", "submitted", "scored", "abandoned"] as const;
+export type AttemptStatus = (typeof ATTEMPT_STATUSES)[number];
+
+/**
+ * Scoring is reachable only through submission: a client cannot jump an
+ * attempt straight to scored.
+ */
+export const attemptMachine = createStateMachine<AttemptStatus>("diagnostic_attempt", {
+  in_progress: ["submitted", "abandoned"],
+  submitted: ["scored", "abandoned"],
+  scored: [],
+  abandoned: [],
+});
+
 export const DB_STATE_MACHINES = [
   membershipMachine,
   personaGrantMachine,
   organizationMachine,
   onboardingMachine,
+  diagnosticMachine,
+  attemptMachine,
 ] as const;

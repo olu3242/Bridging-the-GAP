@@ -13,7 +13,6 @@ export const JOURNEY_STAGES = [
   "identity",
   "onboarding",
   "baseline",
-  "diagnosis",
   "pathway",
   "product",
 ] as const;
@@ -23,7 +22,7 @@ export type JourneyStage = (typeof JOURNEY_STAGES)[number];
 export interface JourneyState {
   authenticated: boolean;
   onboardingState: OnboardingState;
-  /** W02 — set once a baseline diagnostic attempt has been scored. */
+  /** Set once a baseline diagnostic attempt has been scored. */
   baselineCompleted?: boolean;
   /** W03 — set once a pathway has been generated from the baseline. */
   pathwayGenerated?: boolean;
@@ -53,13 +52,7 @@ export const JOURNEY_GATES: readonly JourneyGate[] = [
   {
     stage: "baseline",
     route: "/baseline",
-    implemented: false, // W02 — Diagnostic Engine
-    satisfied: (state) => state.baselineCompleted === true,
-  },
-  {
-    stage: "diagnosis",
-    route: "/baseline/results",
-    implemented: false, // W02 — gap diagnosis
+    implemented: true, // W02 — Diagnostic Engine
     satisfied: (state) => state.baselineCompleted === true,
   },
   {

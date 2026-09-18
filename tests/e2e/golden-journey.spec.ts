@@ -48,11 +48,82 @@ test.describe("golden journey", () => {
     await expect(page.getByRole("heading", { name: "Your data and AI" })).toBeVisible();
     await page.getByRole("button", { name: /Finish/ }).click();
 
-    // The dashboard renders persisted state, not placeholders.
-    await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByText("Land a backend engineering internship")).toBeVisible();
-    await expect(page.getByText("Your BTG pathway is ready to start")).toBeVisible();
-    await expect(page.getByText("identity.onboarding.completed")).toBeVisible();
+    // The baseline gate is now the next stage of the canonical lifecycle.
+    await expect(page).toHaveURL(/\/baseline$/);
+    await page.goto("/baseline");
+    await expect(page.getByRole("heading", { name: "Where you stand with AI" })).toBeVisible();
+  });
+
+  test("baseline: onboarding hands over to the diagnostic, which writes a real profile", async ({ page }) => {
+    const email = `e2e-baseline-${Date.now()}@btg.test`;
+
+    await page.goto("/join");
+    await page.getByLabel("Name").fill("Baseline Learner");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill("btg-e2e-password");
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    // Onboarding
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await page.getByLabel("Display name").fill("Baseline Learner");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("radio", { name: /Learner/ }).check();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByLabel("Your main goal").fill("Understand applied AI");
+    await page.getByLabel("Hours per week").fill("6");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: /Finish/ }).click();
+
+    // The baseline gate now owns the journey, not the dashboard.
+    await expect(page).toHaveURL(/\/baseline$/);
+    await expect(page.getByRole("heading", { name: "Where you stand with AI" })).toBeVisible();
+    await page.getByRole("button", { name: /Start the baseline/ }).click();
+
+    // Answer every question the adaptive walk serves.
+    for (let i = 0; i < 20; i += 1) {
+      if (!page.url().includes("/baseline") || page.url().includes("/results")) break;
+      const options = page.locator('input[name="option"]');
+      if ((await options.count()) === 0) break;
+      await options.first().check();
+      await page.getByRole("button", { name: "Continue" }).click();
+      await page.waitForLoadState("networkidle");
+    }
+
+    await expect(page).toHaveURL(/\/baseline\/results/);
+    await expect(page.getByRole("heading", { name: "Where you stand" })).toBeVisible();
+    await expect(page.getByText("Baseline recorded")).toBeVisible();
+    // Levels shown are measured, not placeholders.
+    await expect(page.getByText(/competencies at target/)).toBeVisible();
+
+    // The gate is satisfied, so the product opens up.
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole("heading", { name: "Your baseline" })).toBeVisible();
+  });
+
+  test("a learner who has not sat the baseline cannot reach the dashboard", async ({ page }) => {
+    const email = `e2e-gate-${Date.now()}@btg.test`;
+
+    await page.goto("/join");
+    await page.getByLabel("Name").fill("Gated Learner");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill("btg-e2e-password");
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    await page.getByLabel("Display name").fill("Gated Learner");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("radio", { name: /Learner/ }).check();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByLabel("Your main goal").fill("Get started");
+    await page.getByLabel("Hours per week").fill("4");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: /Finish/ }).click();
+
+    await expect(page).toHaveURL(/\/baseline$/);
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/baseline$/);
+    await page.goto("/organizations");
+    await expect(page).toHaveURL(/\/baseline$/);
   });
 
   test("a partner CTA pre-selects that persona in onboarding", async ({ page }) => {

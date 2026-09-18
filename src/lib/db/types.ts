@@ -127,3 +127,88 @@ export interface AuditEventRow {
   policy_version: string | null;
   metadata: Json;
 }
+
+// ---------------------------------------------------------------- W02 — E3/E4 ---
+
+export interface CompetencyRow {
+  id: string;
+  domain_id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  target_level: number;
+  evidence_requirement: string | null;
+  is_technical: boolean;
+  sort_order: number;
+}
+
+export interface DiagnosticRow {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  status: "draft" | "published" | "archived";
+  version: number;
+  is_baseline: boolean;
+  max_questions: number;
+}
+
+export interface DiagnosticAttemptRow {
+  id: string;
+  diagnostic_id: string;
+  profile_id: string;
+  status: "in_progress" | "submitted" | "scored" | "abandoned";
+  answered_count: number;
+  question_budget: number;
+  started_at: string;
+  submitted_at: string | null;
+  scored_at: string | null;
+  abandoned_at: string | null;
+  result: AttemptResult | null;
+}
+
+export interface AttemptResult {
+  answered: number;
+  competencies: Array<{
+    competency_id: string;
+    slug: string;
+    name: string;
+    level: number;
+    target_level: number;
+    asked: number;
+    correct: number;
+  }>;
+}
+
+/** Shape returned by public.next_diagnostic_question. Carries no answer key. */
+export interface NextQuestionRow {
+  question_id: string;
+  competency_id: string;
+  competency_name: string;
+  domain_name: string;
+  level: number;
+  kind: "single_choice" | "multi_choice" | "self_report";
+  prompt: string;
+  options: Array<{ id: string; label: string }>;
+  asked_ordinal: number;
+  total_expected: number;
+}
+
+export interface LearnerCompetencyGapRow {
+  profile_id: string;
+  competency_id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  domain_name: string;
+  domain_slug: string;
+  level: number;
+  target_level: number;
+  gap: number;
+  confidence: number;
+  source: "baseline" | "assessment" | "evidence" | "review";
+  measured_at: string;
+  level_label: string | null;
+  level_descriptor: string | null;
+  unmet_prerequisites: string[];
+}

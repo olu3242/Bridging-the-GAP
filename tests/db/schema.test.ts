@@ -13,6 +13,16 @@ const EXPECTED_TABLES = [
   "notifications",
   "notification_preferences",
   "file_objects",
+  "competency_domains",
+  "competencies",
+  "competency_levels",
+  "competency_prerequisites",
+  "diagnostics",
+  "diagnostic_questions",
+  "diagnostic_answer_keys",
+  "diagnostic_attempts",
+  "diagnostic_responses",
+  "learner_competencies",
 ];
 
 describe("schema", () => {

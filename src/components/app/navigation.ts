@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, type LucideIcon } from "lucide-react";
+import { Building2, Gauge, LayoutDashboard, type LucideIcon } from "lucide-react";
 import type { Capability } from "@/domain/identity/persona";
 
 export interface NavItem {
@@ -16,5 +16,6 @@ export interface NavItem {
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, capability: "profile.read_own" },
+  { href: "/baseline/results", label: "Baseline", icon: Gauge, capability: "profile.read_own" },
   { href: "/organizations", label: "Organizations", icon: Building2, capability: "organization.create" },
 ];

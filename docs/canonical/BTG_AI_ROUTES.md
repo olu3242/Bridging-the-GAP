@@ -12,7 +12,8 @@ Classification: `IMPLEMENTED` (UI → action → service → DB → authz → au
 | `/onboarding` | IMPLEMENTED | 4 steps, atomic DB command, forward-only state machine |
 | `/dashboard` | IMPLEMENTED | Every card sourced from a W01 engine; no invented metrics |
 | `/organizations` | IMPLEMENTED | Capability-gated; atomic provisioning with a founder membership |
-| `/baseline`, `/baseline/results` | MISSING | W02 — Diagnostic Engine. Gate registered, `implemented: false` |
+| `/baseline` | IMPLEMENTED | Adaptive probe, one question per view, resumes where it stopped |
+| `/baseline/results` | IMPLEMENTED | Gap diagnosis from the `learner_competency_gaps` read model |
 | `/pathway` | MISSING | W03 — Pathway Engine. Gate registered, `implemented: false` |
 | `/learn/*`, `/tutor` | MISSING | W04 |
 | `/projects/*`, `/challenges/*` | MISSING | W05 |

@@ -83,7 +83,35 @@ self-hosts both families through `next/font`, which loads all six faces with
 no external request. Visual comparison above was therefore done with fonts
 held equal on both sides.
 
-## Waves W02 – W10
+## W02 — Diagnostic + Competency Graph
+
+```
+Wave:            W02 — Diagnostic + Competency Graph
+Status:          INTEGRATED
+Certification:   BTG_W02_DIAGNOSTIC_READY (pending live Supabase for LIVE_CERTIFIED)
+Schema:          +5 migrations, 20260918001100 → 20260918001500
+Implementation:  E4 competency graph (domains, competencies, 5-level ladder,
+                 acyclic prerequisites, gap read model); E3 diagnostic engine
+                 (catalogue, question bank with isolated answer keys, attempts,
+                 responses, adaptive walk, server-side grading, persisted
+                 baseline); /baseline and /baseline/results; baseline journey
+                 gate now live; dashboard baseline card
+Tests:           130/130 vitest (57 domain, 73 database/RLS), 14/14 Playwright
+Failures:        none
+Defects repaired: 1 (seed authored every correct answer in the same option slot)
+External blockers: Supabase project still unprovisioned, so the baseline
+                 browser journey is written but unrun and the W02 UI has not
+                 been rendered against a live session
+Next execution:  W03 — Pathway Engine, Batch A+B
+```
+
+### Security decisions worth knowing
+
+- `diagnostic_answer_keys` carries **no grant** to `authenticated`. A learner with a valid session cannot read it; only the security-definer scoring command can.
+- `diagnostic_responses.is_correct` is withheld by **column-level grant**, so a learner can see what they answered but not how it was graded. RLS filters rows, not columns, which is why a column grant is the right tool here.
+- Attempts, responses and `learner_competencies` have no direct INSERT/UPDATE for `authenticated`: the five commands are the only write path, so a learner cannot forge a competency level.
+
+## Waves W03 – W10
 
 All `NOT_STARTED`. Engine-by-engine certification: `BTG_AI_ENGINES.md`.
 Route classification: `BTG_AI_ROUTES.md`.

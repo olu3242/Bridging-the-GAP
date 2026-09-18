@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, History, Target } from "lucide-react";
+import { ArrowRight, Building2, Gauge, History, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
@@ -10,6 +10,8 @@ import { requireActor } from "@/server/services/actor";
 import { getLearnerProfile, getProfile } from "@/server/services/onboarding-service";
 import { listNotifications } from "@/server/services/notification-service";
 import { listOrganizationsForActor } from "@/server/services/organization-service";
+import { getCompetencyGaps } from "@/server/services/diagnostic-service";
+import { compareByPriority, gapSeverity, GAP_SEVERITY_COPY, LEVEL_LABELS, type CompetencyLevel } from "@/domain/competency/levels";
 import { markNotificationReadAction } from "@/server/actions/notifications";
 import { PERSONA_LABELS } from "@/domain/identity/persona";
 import { personasOf } from "@/domain/identity/actor";
@@ -20,7 +22,6 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 /** Waves that are not built yet are described, never faked as a metric. */
 const UPCOMING = [
-  { wave: "W02", title: "Baseline diagnostic", body: "Measure what you already know and where the gaps are." },
   { wave: "W03", title: "Personalized pathway", body: "A plan generated from your baseline, not a template." },
   { wave: "W04", title: "Learning + AI tutor", body: "Lessons, practice and a tutor that questions rather than answers." },
 ];
@@ -33,11 +34,12 @@ export default async function DashboardPage({
   const [{ welcome }, actor] = await Promise.all([searchParams, requireActor()]);
   const supabase = await createSupabaseServerClient();
 
-  const [profile, learnerProfile, notifications, organizations, auditResult] = await Promise.all([
+  const [profile, learnerProfile, notifications, organizations, gaps, auditResult] = await Promise.all([
     getProfile(supabase, actor.profileId),
     getLearnerProfile(supabase, actor.profileId),
     listNotifications(supabase, actor.profileId),
     listOrganizationsForActor(supabase),
+    getCompetencyGaps(supabase, actor.profileId),
     supabase
       .from("audit_events")
       .select("id, action, object_type, occurred_at")
@@ -82,6 +84,64 @@ export default async function DashboardPage({
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gauge className="size-4 text-accent" aria-hidden /> Your baseline
+            </CardTitle>
+            <CardDescription>
+              Measured levels from your own diagnostic answers — Diagnostic and Competency engines.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {gaps.length === 0 ? (
+              <EmptyState
+                icon={Gauge}
+                title="No baseline yet"
+                description="A short adaptive diagnostic finds your level across eight competencies."
+                action={
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href="/baseline">Start the baseline</Link>
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-ink-muted">
+                  {gaps.filter((g) => g.gap === 0).length} of {gaps.length} competencies at target.
+                </p>
+                <ul className="space-y-2">
+                  {[...gaps]
+                    .sort(compareByPriority)
+                    .filter((g) => g.gap > 0)
+                    .slice(0, 3)
+                    .map((gap) => (
+                      <li
+                        key={gap.competency_id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm text-ink">{gap.name}</p>
+                          <p className="text-xs text-ink-subtle">
+                            {LEVEL_LABELS[gap.level as CompetencyLevel]} → {LEVEL_LABELS[gap.target_level as CompetencyLevel]}
+                          </p>
+                        </div>
+                        <Badge tone={gapSeverity(gap.level, gap.target_level) === "priority" ? "warning" : "neutral"}>
+                          {GAP_SEVERITY_COPY[gapSeverity(gap.level, gap.target_level)]}
+                        </Badge>
+                      </li>
+                    ))}
+                </ul>
+                <Button asChild size="sm" variant="secondary">
+                  <Link href="/baseline/results">
+                    See the full baseline <ArrowRight className="size-4" aria-hidden />
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
