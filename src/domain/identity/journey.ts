@@ -24,7 +24,7 @@ export interface JourneyState {
   onboardingState: OnboardingState;
   /** Set once a baseline diagnostic attempt has been scored. */
   baselineCompleted?: boolean;
-  /** W03 — set once a pathway has been generated from the baseline. */
+  /** Set once a pathway has been generated from the baseline. */
   pathwayGenerated?: boolean;
 }
 
@@ -58,7 +58,7 @@ export const JOURNEY_GATES: readonly JourneyGate[] = [
   {
     stage: "pathway",
     route: "/pathway",
-    implemented: false, // W03 — Pathway Engine
+    implemented: true, // W03 — Pathway Engine
     satisfied: (state) => state.pathwayGenerated === true,
   },
 ];

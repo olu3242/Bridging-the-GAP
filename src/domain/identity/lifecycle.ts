@@ -77,6 +77,38 @@ export const attemptMachine = createStateMachine<AttemptStatus>("diagnostic_atte
   abandoned: [],
 });
 
+export const PATHWAY_STATUSES = ["draft", "active", "superseded", "archived"] as const;
+export type PathwayStatus = (typeof PATHWAY_STATUSES)[number];
+
+export const pathwayMachine = createStateMachine<PathwayStatus>("pathway", {
+  draft: ["active", "archived"],
+  active: ["superseded", "archived"],
+  superseded: [],
+  archived: [],
+});
+
+export const STEP_STATUSES = ["locked", "available", "in_progress", "completed", "skipped"] as const;
+export type StepStatus = (typeof STEP_STATUSES)[number];
+
+/** completed → in_progress exists so a re-assessment can reopen a step. */
+export const pathwayStepMachine = createStateMachine<StepStatus>("pathway_step", {
+  locked: ["available"],
+  available: ["in_progress", "skipped"],
+  in_progress: ["completed", "available"],
+  completed: ["in_progress"],
+  skipped: [],
+});
+
+export const PROGRESS_STATUSES = ["locked", "available", "in_progress", "completed"] as const;
+export type ProgressStatus = (typeof PROGRESS_STATUSES)[number];
+
+export const moduleProgressMachine = createStateMachine<ProgressStatus>("module_progress", {
+  locked: ["available"],
+  available: ["in_progress"],
+  in_progress: ["completed", "available"],
+  completed: [],
+});
+
 export const DB_STATE_MACHINES = [
   membershipMachine,
   personaGrantMachine,
@@ -84,4 +116,7 @@ export const DB_STATE_MACHINES = [
   onboardingMachine,
   diagnosticMachine,
   attemptMachine,
+  pathwayMachine,
+  pathwayStepMachine,
+  moduleProgressMachine,
 ] as const;

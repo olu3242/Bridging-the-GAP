@@ -201,3 +201,68 @@ export async function completeBaselineJourney(userId: string): Promise<string> {
   const { attemptId } = await walkBaseline(userId, { correctly: true });
   return attemptId;
 }
+
+// ------------------------------------------------- pathway / learning helpers ---
+
+export async function generatePathway(userId: string): Promise<{ id: string; version: number }> {
+  return asUser(userId, async (client) => {
+    const result = await client.query(
+      "select (public.generate_pathway()).id as id, (public.generate_pathway(null)).version as version",
+    );
+    return result.rows[0] as { id: string; version: number };
+  });
+}
+
+/** Single-call generation; the two-call form above would create two versions. */
+export async function generatePathwayOnce(userId: string): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.generate_pathway()).id as id");
+    return result.rows[0].id as string;
+  });
+}
+
+export async function pathwaySteps(userId: string, pathwayId: string) {
+  return asUser(userId, async (client) => {
+    const result = await client.query(
+      `select id, position, status, competency_slug, competency_name, from_level, target_level,
+              depth, blocked_by, rationale
+       from public.pathway_step_view where pathway_id = $1 order by position`,
+      [pathwayId],
+    );
+    return result.rows as Array<{
+      id: string;
+      position: number;
+      status: string;
+      competency_slug: string;
+      competency_name: string;
+      from_level: number;
+      target_level: number;
+      depth: number;
+      blocked_by: string[];
+      rationale: string;
+    }>;
+  });
+}
+
+/** Completes every activity in every module attached to a pathway step. */
+export async function completeStepLearning(userId: string, stepId: string): Promise<void> {
+  await asUser(userId, (client) => client.query("select * from public.open_step_learning($1)", [stepId]));
+
+  const activities = await sql<{ id: string; requires_output: boolean }>(
+    `select a.id, a.requires_output
+     from public.learner_module_progress lmp
+     join public.learning_activities a on a.module_id = lmp.module_id
+     where lmp.profile_id = $1 and lmp.pathway_step_id = $2
+     order by a.sort_order`,
+    [userId, stepId],
+  );
+
+  for (const activity of activities) {
+    await asUser(userId, (client) =>
+      client.query("select public.complete_learning_activity($1, $2)", [
+        activity.id,
+        activity.requires_output ? "Recorded what I tried and what changed." : null,
+      ]),
+    );
+  }
+}

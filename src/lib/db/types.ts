@@ -212,3 +212,71 @@ export interface LearnerCompetencyGapRow {
   level_descriptor: string | null;
   unmet_prerequisites: string[];
 }
+
+// ------------------------------------------------------------- W03/W04 — E5/E6 ---
+
+export interface PathwayRow {
+  id: string;
+  profile_id: string;
+  version: number;
+  status: "draft" | "active" | "superseded" | "archived";
+  generated_from_attempt_id: string | null;
+  rationale: { source?: string; ordering?: string; steps?: number; note?: string };
+  generated_at: string;
+  activated_at: string | null;
+  superseded_at: string | null;
+  superseded_by: string | null;
+}
+
+export interface PathwayStepViewRow {
+  id: string;
+  pathway_id: string;
+  profile_id: string;
+  position: number;
+  status: "locked" | "available" | "in_progress" | "completed" | "skipped";
+  from_level: number;
+  target_level: number;
+  rationale: string;
+  depth: number;
+  unlocked_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  competency_id: string;
+  competency_slug: string;
+  competency_name: string;
+  evidence_requirement: string | null;
+  domain_name: string;
+  blocked_by: string[];
+}
+
+export interface LearnerModuleRow {
+  profile_id: string;
+  module_id: string;
+  pathway_step_id: string | null;
+  status: "locked" | "available" | "in_progress" | "completed";
+  activities_completed: number;
+  activities_total: number;
+  started_at: string | null;
+  completed_at: string | null;
+  module_slug: string;
+  module_title: string;
+  summary: string | null;
+  estimated_minutes: number;
+  target_level: number;
+  competency_id: string;
+  competency_name: string;
+  competency_slug: string;
+  step_position: number | null;
+  step_status: string | null;
+}
+
+export interface LearningActivityRow {
+  id: string;
+  slug: string;
+  title: string;
+  kind: "lesson" | "lab" | "quiz" | "reading";
+  body: string;
+  requires_output: boolean;
+  estimated_minutes: number;
+  sort_order: number;
+}

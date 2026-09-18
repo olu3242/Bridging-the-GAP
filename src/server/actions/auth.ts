@@ -86,7 +86,7 @@ export async function signInAction(_prev: ActionState, formData: FormData): Prom
     // onboarding even if they asked for the dashboard.
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarding_state, baseline_completed_at")
+      .select("onboarding_state, baseline_completed_at, active_pathway_id")
       .eq("id", data.user.id)
       .maybeSingle();
 
@@ -94,6 +94,7 @@ export async function signInAction(_prev: ActionState, formData: FormData): Prom
       authenticated: true,
       onboardingState: (profile?.onboarding_state as OnboardingState) ?? "not_started",
       baselineCompleted: Boolean(profile?.baseline_completed_at),
+      pathwayGenerated: Boolean(profile?.active_pathway_id),
     };
     const resolved = resolveDestination(state);
     destination = resolved === "/dashboard" && requested ? requested : resolved;

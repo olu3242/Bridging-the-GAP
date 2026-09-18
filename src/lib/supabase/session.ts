@@ -5,7 +5,13 @@ import { PRODUCT_HOME, isPathAllowed, resolveDestination } from "@/domain/identi
 import type { OnboardingState } from "@/domain/identity/lifecycle";
 
 /** Routes that require an authenticated actor. */
-const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/organizations", "/baseline"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/onboarding",
+  "/organizations",
+  "/baseline",
+  "/pathway",
+];
 /** Routes a signed-in learner should never sit on. */
 const AUTH_PREFIXES = ["/sign-in", "/join"];
 
@@ -55,7 +61,7 @@ export async function updateSession(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("onboarding_state, baseline_completed_at")
+    .select("onboarding_state, baseline_completed_at, active_pathway_id")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -63,6 +69,7 @@ export async function updateSession(request: NextRequest) {
     authenticated: true,
     onboardingState: (profile?.onboarding_state as OnboardingState) ?? "not_started",
     baselineCompleted: Boolean(profile?.baseline_completed_at),
+    pathwayGenerated: Boolean(profile?.active_pathway_id),
   };
 
   if (isAuthRoute) {
