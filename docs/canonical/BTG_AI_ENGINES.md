@@ -25,10 +25,10 @@ Engine IDs follow the repository's canonical set in `BTG_AI_CANONICAL.md`.
 | E11 Mentorship | INTEGRATED | yes | yes | yes | yes | yes | db | Session scheduling is a record, not a calendar integration |
 | E12 Opportunity | INTEGRATED | yes | yes | yes | yes | yes | db | Employer-side opportunity authoring UI not built (operator-writable only) |
 | E13 Recommendation & Matching | INTEGRATED | yes | yes | yes | yes | yes | db | — |
-| E14 Community | READY_WITH_GAPS | — | yes | yes | yes | yes | db | Cohort aggregates only; no discussion or peer surface |
+| E14 Community | PILOT_SCOPE_COMPLETE | yes | yes | yes | yes | yes | db | Cohort aggregation is the intended pilot scope; peer discussion is POST_PILOT — see `BTG_AI_PILOT.md` |
 | E15 Application pipeline | INTEGRATED | yes | yes | yes | yes | yes | db | Employer pipeline UI is the organizations surface; no dedicated ATS view |
 | E16 Governance & Intelligence | INTEGRATED | yes | yes | yes | yes | yes | db | Pre-authentication analytics, rate limiting and error reporting still out of scope |
-| E17 Outcomes & Analytics | INTEGRATED | yes | yes | yes | yes | yes | db + browser | Cohort aggregate surface has no UI yet; the function is certified |
+| E17 Outcomes & Analytics | INTEGRATED | yes | yes | yes | yes | yes | db + browser | Operator console and cross-org analytics are POST_PILOT |
 
 ## Engine contracts — the implemented engines
 
@@ -149,7 +149,8 @@ Two questions per competency: an opener at level 2, then level 4 if that was rig
   path exercised through PostgREST remain certified against a local Postgres
   cluster rather than live. This is the only thing between `INTEGRATED` and
   `LIVE_CERTIFIED`.
-- E14 Community is a cohort aggregate surface only. There is no discussion,
+- E14 Community is a cohort aggregate surface only, now classified
+  `PILOT_SCOPE_COMPLETE` rather than left ambiguous. There is no discussion,
   peer review or social surface, and none is faked.
 - Pre-authentication analytics (`landing_viewed`, `join_started`) have no actor,
   so they would need an anonymous-writable events table with its own abuse

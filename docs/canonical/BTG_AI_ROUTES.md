@@ -11,7 +11,7 @@ Classification: `IMPLEMENTED` (UI → action → service → DB → authz → au
 | `/auth/callback` | IMPLEMENTED | Exchanges the email-confirmation code for a session |
 | `/onboarding` | IMPLEMENTED | 4 steps, atomic DB command, forward-only state machine |
 | `/dashboard` | IMPLEMENTED | Every card sourced from a canonical engine, including the E17 outcome funnel; no invented metrics |
-| `/organizations` | IMPLEMENTED | Capability-gated; atomic provisioning with a founder membership |
+| `/organizations` | IMPLEMENTED | Capability-gated; atomic provisioning with a founder membership; cohort outcome aggregates behind `outcomes.read_org` |
 | `/baseline` | IMPLEMENTED | Adaptive probe, one question per view, resumes where it stopped |
 | `/baseline/results` | IMPLEMENTED | Gap diagnosis from the `learner_competency_gaps` read model |
 | `/pathway` | IMPLEMENTED | Generated plan, per-step status, blocking steps and rationale |
@@ -25,9 +25,9 @@ Classification: `IMPLEMENTED` (UI → action → service → DB → authz → au
 | `/opportunities` | IMPLEMENTED | Explainable matches, disclosure-controlled apply, offer response |
 | `/mentorship` | IMPLEMENTED | Explained recommendations, request and response |
 | `/outcomes` | IMPLEMENTED | E17 funnel and ledger timeline; every figure traced to a record |
-| `/console/*`, `/analytics/*` | MISSING | Operator console and org analytics UI. `cohort_outcomes` exists and is certified; no page consumes it yet |
+| `/console/*`, `/analytics/*` | POST_PILOT | Operator console and cross-organization analytics. The governed per-organization read surface now lives on `/organizations` |
 | `/portal/*` (university, employer, sponsor) | MISSING | Partner portals. Organization membership and the application pipeline are implemented; `/organizations` is the surface |
-| `/community/*` | MISSING | No discussion or peer surface. Cohort aggregates only |
+| `/community/*` | POST_PILOT | No discussion or peer surface. Cohort aggregation is the pilot scope |
 | `/credentials/[id]` (public verification) | MISSING | Credentials are issued and visible to their holder; no public verification page |
 
 No route structure was invented for an unbuilt surface. Every journey gate in

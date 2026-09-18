@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   asUser,
-  completeStepLearning,
   createUser,
   expectRejection,
   generatePathwayOnce,
   makeReviewer,
-  pathwaySteps,
   proveCompetency,
   sql,
   walkBaseline,

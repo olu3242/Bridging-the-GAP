@@ -7,6 +7,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
 import { assertCan } from "@/domain/identity/actor";
 import { listOrganizationsForActor } from "@/server/services/organization-service";
+import { getCohortOutcomesFor, listGovernedCohorts } from "@/server/services/outcomes-service";
+import { CohortOutcomes } from "@/components/app/cohort-outcomes";
+import { can } from "@/domain/identity/actor";
 import { createOrganizationAction } from "@/server/actions/organizations";
 import { PERSONA_LABELS } from "@/domain/identity/persona";
 
@@ -19,6 +22,20 @@ export default async function OrganizationsPage() {
 
   const supabase = await createSupabaseServerClient();
   const organizations = await listOrganizationsForActor(supabase);
+
+  // The cohort panel is only assembled for a persona that may read org
+  // outcomes. Seeing it never implies access: `cohort_outcomes` re-authorizes
+  // the caller against each cohort's organization.
+  const showsCohorts = can(actor, "outcomes.read_org");
+  const cohorts = showsCohorts
+    ? await listGovernedCohorts(
+        supabase,
+        organizations.map((organization) => organization.id),
+      )
+    : [];
+  const cohortOutcomes = showsCohorts
+    ? await getCohortOutcomesFor(supabase, cohorts)
+    : new Map();
 
   return (
     <div className="space-y-5">
@@ -79,6 +96,8 @@ export default async function OrganizationsPage() {
 
         <CreateOrganizationForm action={createOrganizationAction} />
       </div>
+
+      {showsCohorts ? <CohortOutcomes cohorts={cohorts} outcomes={cohortOutcomes} /> : null}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import { ArrowRight, CheckCircle2, CircleDot, Lock } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Alert, Badge, Progress } from "@/components/ui/feedback";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { idleState, type ActionState } from "@/server/actions/action-result";

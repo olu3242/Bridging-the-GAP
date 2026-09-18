@@ -54,3 +54,64 @@ export async function getCohortOutcomes(
   const rows = (data ?? []) as CohortOutcomeRow[];
   return rows[0] as CohortOutcomeRow;
 }
+
+export interface CohortSummary {
+  id: string;
+  slug: string;
+  name: string;
+  organization_id: string | null;
+  member_count: number;
+}
+
+/**
+ * The cohorts the caller governs. RLS on `cohorts` already restricts this to
+ * an organization the caller administers (or a cohort they belong to), so the
+ * query carries no authorization logic of its own.
+ */
+export async function listGovernedCohorts(
+  supabase: SupabaseClient,
+  organizationIds: readonly string[],
+): Promise<CohortSummary[]> {
+  if (organizationIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("cohorts")
+    .select("id, slug, name, organization_id, cohort_members(count)")
+    .in("organization_id", organizationIds)
+    .order("name");
+  if (error) throw fromPostgresError(error, "We could not load your cohorts.");
+  return (data ?? []).map((row) => {
+    const cohort = row as unknown as Omit<CohortSummary, "member_count"> & {
+      cohort_members: { count: number }[] | null;
+    };
+    return {
+      id: cohort.id,
+      slug: cohort.slug,
+      name: cohort.name,
+      organization_id: cohort.organization_id,
+      member_count: cohort.cohort_members?.[0]?.count ?? 0,
+    };
+  });
+}
+
+/**
+ * Aggregates for each governed cohort. A cohort the database refuses -- below
+ * the reporting threshold, or not governed by this caller -- yields `null`
+ * rather than a zeroed row, so the UI can say why instead of showing a
+ * misleading set of zeros.
+ */
+export async function getCohortOutcomesFor(
+  supabase: SupabaseClient,
+  cohorts: readonly CohortSummary[],
+): Promise<Map<string, CohortOutcomeRow | null>> {
+  const entries = await Promise.all(
+    cohorts.map(async (cohort) => {
+      const { data, error } = await supabase.rpc("cohort_outcomes", {
+        p_cohort_id: cohort.id,
+      });
+      if (error) return [cohort.id, null] as const;
+      const rows = (data ?? []) as CohortOutcomeRow[];
+      return [cohort.id, rows[0] ?? null] as const;
+    }),
+  );
+  return new Map(entries);
+}

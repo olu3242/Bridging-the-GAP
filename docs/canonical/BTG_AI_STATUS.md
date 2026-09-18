@@ -123,17 +123,17 @@ Scope:           E5 pathway, E6 learning, E7 AI tutor, E8 projects,
                  E15 application pipeline, E17 outcomes/analytics
 Status:          INTEGRATED
 Certification:   BTG_AI_E2E_INTEGRATED (pending live Supabase for LIVE_CERTIFIED)
-Schema:          +20 migrations, 20260918001600 → 20260918003500
-                 (35 migrations total, 20260918000100 → 20260918003500)
+Schema:          +21 migrations, 20260918001600 → 20260918003600
+                 (36 migrations total, 20260918000100 → 20260918003600)
 Implementation:  /pathway, /pathway/[stepId], /tutor, /projects,
                  /projects/[projectId], /review, /review/[reviewId],
                  /portfolio, /opportunities, /mentorship, /outcomes;
                  dashboard outcome funnel replacing the stale "what unlocks
                  next" panel
-Tests:           265/265 vitest (73 domain, 192 database/RLS),
+Tests:           266/266 vitest (73 domain, 193 database/RLS),
                  14/14 Playwright (7 skipped: need Supabase)
 Failures:        none
-Defects repaired: 13 across the batches (see below)
+Defects repaired: 14 across the batches (see below)
 External blockers: Supabase project still unprovisioned. The browser journey
                  specs and the PostgREST request path remain unrun; nothing is
                  LIVE_CERTIFIED
@@ -195,6 +195,24 @@ level outranking the diagnostic estimate → a non-zero enumerated match →
 application advanced to offered → accepted → the outcome funnel and ledger
 timeline agreeing with all of it.
 
+### Batch 6 — pilot hardening
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 14 | Any cohort member reading `public.cohorts` got `infinite recursion detected in policy for relation "cohort_members"` | `cohort_members_select` answered its own question with `exists (select 1 from public.cohort_members mine ...)` — a policy on the table reading the table. `cohorts_select` inherited the fault through its reference to `cohort_members` | `btg.is_cohort_member`, a SECURITY DEFINER helper answering the membership question outside RLS, exactly as `btg.is_org_admin` already does for memberships. Both policies rewritten to use it |
+
+Found by writing the boundary test the new organization cohort panel depends on
+— that a member can see their cohort but never its aggregate. A learner in a
+cohort could not read the cohort they belonged to at all.
+
+Also in this batch: lint taken to 0 errors / 0 warnings (three dead imports
+removed; `argsIgnorePattern: "^_"` declared for the previous-state argument that
+`useActionState` requires positionally and which therefore cannot be deleted —
+unused *variables* and caught errors remain flagged, verified with a probe
+file), and the smallest governed organization read surface over `cohort_outcomes`.
+
+Pilot scope decisions and go/no-go gates: `BTG_AI_PILOT.md`.
+
 Engine-by-engine certification: `BTG_AI_ENGINES.md`.
 Route classification: `BTG_AI_ROUTES.md`.
 
@@ -203,7 +221,7 @@ Route classification: `BTG_AI_ROUTES.md`.
 ```bash
 npm install
 npm run db:local:up     # Postgres 16 cluster + all migrations
-npm run test:all        # 265 tests: domain + database/RLS
+npm run test:all        # 266 tests: domain + database/RLS
 npm run build
 BTG_E2E_CHROMIUM=/opt/pw-browsers/chromium npx playwright test
 ```

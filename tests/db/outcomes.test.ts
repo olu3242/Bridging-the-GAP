@@ -360,6 +360,34 @@ describe("cohort outcomes are aggregate-only and authorized", () => {
     expect(rejection.code).toBe("P0002");
   });
 
+  it("lets a member see their cohort but never its aggregate", async () => {
+    // The organization read surface lists cohorts through RLS and then asks for
+    // each aggregate. A learner who merely belongs to the cohort must pass the
+    // first gate and fail the second, or the panel would leak cohort-wide
+    // numbers to the people being measured.
+    const { cohortId } = await cohortOf(5, "cohort-member-view");
+    const [member] = await sql<{ profile_id: string }>(
+      "select profile_id from public.cohort_members where cohort_id = $1 limit 1",
+      [cohortId],
+    );
+
+    const visible = await asUser(member.profile_id, async (client) => {
+      const result = await client.query(
+        "select count(*)::int as n from public.cohorts where id = $1",
+        [cohortId],
+      );
+      return result.rows[0].n as number;
+    });
+    expect(visible).toBe(1);
+
+    const rejection = await expectRejection(
+      asUser(member.profile_id, (client) =>
+        client.query("select * from public.cohort_outcomes($1)", [cohortId]),
+      ),
+    );
+    expect(rejection.code).toBe("P0002");
+  });
+
   it("returns no per-learner column at all", async () => {
     const rows = await sql<{ argnames: string[] }>(
       `select proargnames as argnames from pg_proc p
