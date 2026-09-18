@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: btg_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+
+    env:
+      BTG_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/btg_test
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Apply migrations to the certification database
+        run: |
+          psql "$BTG_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -q -f tests/db/bootstrap.sql
+          for file in supabase/migrations/*.sql; do
+            echo "applying $file"
+            psql "$BTG_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$file"
+          done
+
+      - name: Tests (domain + database/RLS)
+        run: npm run test:all
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser E2E
+        run: npx playwright test
