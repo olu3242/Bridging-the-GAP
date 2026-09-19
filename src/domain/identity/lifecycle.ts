@@ -200,6 +200,23 @@ export const mentorshipMachine = createStateMachine<MentorshipStatus>("mentorshi
   ended: [],
 });
 
+/**
+ * Notification delivery. This was the one status enum in the system with no
+ * machine registered, so its transitions were unguarded until the execution
+ * tier gave it a real lifecycle. `pending -> read` stays legal because an
+ * in-app notification is readable the moment it is written, so a learner can
+ * read one before the dispatcher has observed it.
+ */
+export const NOTIFICATION_STATUSES = ["pending", "sent", "read", "failed"] as const;
+export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number];
+
+export const notificationMachine = createStateMachine<NotificationStatus>("notification", {
+  pending: ["sent", "failed", "read"],
+  sent: ["read"],
+  read: [],
+  failed: ["pending"], // manual retry
+});
+
 export const DB_STATE_MACHINES = [
   membershipMachine,
   personaGrantMachine,
@@ -217,4 +234,5 @@ export const DB_STATE_MACHINES = [
   opportunityMachine,
   applicationMachine,
   mentorshipMachine,
+  notificationMachine,
 ] as const;

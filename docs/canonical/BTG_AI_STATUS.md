@@ -304,12 +304,97 @@ Pilot scope decisions and go/no-go gates: `BTG_AI_PILOT.md`.
 Engine-by-engine certification: `BTG_AI_ENGINES.md`.
 Route classification: `BTG_AI_ROUTES.md`.
 
+## W14-B — Execution tier (Workflow OS convergence, batch B)
+
+```
+Wave:            W14 — Workflow OS Convergence, batch B (execution tier)
+Status:          INTEGRATED
+Certification:   BTG_WORKFLOW_OS_BLOCKED (on W14-A, externally — see below)
+Schema:          +1 forward migration (20260918003900_execution_tier), 39 total
+Implementation:  btg.work_queue, claim/complete/fail/fail-permanently with
+                 lease + exponential backoff + dead-letter, lease reaping,
+                 btg.dispatch_notification, btg.drain_notifications,
+                 btg.queue_health; notification state machine registered
+Tests:           301/301 vitest across 20 files (+16 execution, +19 grant
+                 surface since the last entry)
+Failures:        none
+Defects repaired: 1 test-harness defect (see below)
+External blockers: no service-role key reachable from this session, so no drain
+                 invoker is wired; W14-A (live substrate) stays BLOCKED_EXTERNAL
+Next execution:  W14-A when the project host is reachable; then W14-C
+```
+
+### What this closes
+
+E16 enqueued notifications and nothing ever dequeued them. `notifications`
+carried a `status` enum whose `pending → sent` edge had **no** row in
+`btg.state_transitions` — the one status enum in the system with no registered
+machine — which is the schema-level tell that no execution tier existed. Every
+notification written since W01 was still `pending`.
+
+W14-B adds the smallest durable execution tier that makes `pending → sent` a
+real transition, and nothing more. It is a work queue, a worker, and a drain
+function; it is not an orchestrator. Full design, the three-truths model, and
+the specified-but-unbuilt W14-C/W14-D tables: `BTG_AI_WORKFLOW_OS.md`.
+
+### Deliberate deviation from the stated technology choice
+
+The W14 contract preferred `pgmq` + `pg_cron` + `pg_net`. All three — and
+`http` — are absent from `pg_available_extensions` on a bare Postgres cluster,
+which is the certification substrate, so a pgmq-based queue would have been
+uncertifiable locally and unverifiable anywhere the repo is cloned. The queue
+is instead `FOR UPDATE SKIP LOCKED` over one table: portable, certifiable on
+the cluster the test suite already runs, and behaviourally equivalent for a
+single-consumer workload. `pgmq` remains a swap behind the same four function
+signatures if the hosted project later warrants it.
+
+### Design decisions worth knowing
+
+- **`attempts` increments at claim time, not at failure.** A worker that dies
+  mid-work never gets a free retry; the lease reaper returns the item to
+  `queued` with the attempt already spent, so a poison payload cannot loop.
+- **Backoff `least(3600, 5 * power(2, attempts - 1))` seconds**, then `dead` at
+  `max_attempts`. `fail_work_permanently` skips straight to `dead` for a
+  non-retryable condition (no provider for the channel), so a mis-addressed
+  email does not burn five attempts.
+- **Idempotent enqueue** via a partial unique index on `(queue,
+  idempotency_key) where idempotency_key is not null`, so a command that runs
+  twice in a retry enqueues once.
+- **`in_app` dispatches to `sent`; `email` and `push` dead-letter with
+  `no_provider`.** The tier is honest about having no transport rather than
+  reporting a delivery that did not happen.
+- **Every runtime function is `service_role` only**, each with an explicit
+  `revoke all ... from public, anon, authenticated`. A learner cannot enqueue
+  work, claim work, or mark work done; asserted by name in
+  `tests/db/execution.test.ts`, not inferred from a default.
+
+### Defect found and repaired
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 18 | The database suite was order-dependent: a test using the `anon` helper could poison a pooled connection and fail an unrelated later test | `asAnon` in `tests/db/helpers.ts` had no `catch` around its body, so a deliberately-failing assertion left the transaction open on a connection returned to the pool. It also set role `authenticated` rather than `anon`, meaning every "anon is denied" assertion had been proving the wrong thing | `catch { rollback }` added; role corrected to `anon`. Both faults predate W14-B and were surfaced by it |
+
+The state-machine parity test also correctly caught the `notification` machine
+being added to the database without its TypeScript mirror. Fixed by adding
+`notificationMachine` to `DB_STATE_MACHINES` (17 machines); the test was not
+weakened.
+
+### Live proof of the executor primitives
+
+Applied to the live project and exercised there with a throwaway `live_probe`
+queue: idempotent enqueue, exclusive claim under concurrency, backoff, dead-
+letter at the attempt ceiling, and lease reaping. Final `btg.queue_health` read
+exactly one `queued` and one `dead` row for the probe queue; probe rows then
+deleted (`remaining_probe_rows: 0`). This certifies the queue primitives over
+the SQL boundary — it does **not** certify the substrate, which needs PostgREST
+and Auth and remains W14-A.
+
 ## How to reproduce the certification
 
 ```bash
 npm install
 npm run db:local:up     # Postgres 16 cluster + all migrations
-npm run test:all        # 285 tests: domain + database/RLS
+npm run test:all        # 301 tests: domain + database/RLS
 npm run build
 BTG_E2E_CHROMIUM=/opt/pw-browsers/chromium npx playwright test
 ```

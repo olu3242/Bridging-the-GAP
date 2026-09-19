@@ -66,15 +66,28 @@ export async function asOwnerWithClaim<T>(
   }
 }
 
-/** Runs a block with no session at all (the `anon` case). */
+/**
+ * Runs a block as the `anon` role — an unauthenticated visitor, which is what
+ * PostgREST uses when no bearer token is present.
+ *
+ * Two bugs fixed here: it previously set role `authenticated` despite its
+ * name, which tested "authenticated with no session" rather than anon at all;
+ * and it had no catch, so a throwing block released a connection still inside
+ * an aborted transaction. That poisoned the pooled connection and made the
+ * next unrelated query fail with "current transaction is aborted", which made
+ * the whole suite order-dependent.
+ */
 export async function asAnon<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query("begin");
-    await client.query("set local role authenticated");
+    await client.query("set local role anon");
     const result = await fn(client);
     await client.query("rollback");
     return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
   } finally {
     client.release();
   }

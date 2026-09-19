@@ -46,7 +46,7 @@ overlooked.
 |---|---|---|
 | G1 build | PASS | `npm run build`, `/` prerendered static |
 | G2 CI | PASS | both `verify` runs green on the current head |
-| G3 migrations | PASS | 38/38 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster, re-proved after each fix |
+| G3 migrations | PASS | 39/39 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster, re-proved after each fix |
 | G4 live auth | BLOCKED_EXTERNAL | Auth provisioned and the `on_auth_user_created` trigger installed live, but this session's egress policy denies `epmtfqqemxumsjbthsmq.supabase.co` (403 on CONNECT), so no sign-up can be exercised from here |
 | G5 live RLS / PostgREST | BLOCKED_EXTERNAL | Policies, grants and function ACLs byte-identical live; every denial re-proved on the live database as the `authenticated` role with a session claim. The PostgREST/JWT path itself is unreachable from this session |
 | G6 authenticated E2E | BLOCKED_EXTERNAL | 7 browser specs written and still skipped; the browser cannot reach the project host |
@@ -59,13 +59,16 @@ overlooked.
 | G13 recovery | PASS (local) | typed `ActionState` per failure; unhappy paths covered in the domain and database suites |
 | G14 no critical security defect | PASS, after two repairs | defect 15 (any learner could complete any learner's pathway step) and defect 17 (any learner could forge their own outcome history in the ledger). Both reproduced with probes, fixed, and guarded by 19 grant-surface tests |
 | G15 no data-loss defect | PASS | append-only ledger and transcript; supersession never rewrites a prior claim |
+| G16 notification delivery | PASS (local) / BLOCKED_EXTERNAL (live) | W14-B execution tier: `pending → sent` is a registered transition driven by a real worker, 16 execution tests. Live drain is unwired — the invoker needs a service-role key this session cannot hold |
 
 **Overall: `NOT_PILOT_READY`.**
 
 Every gate that can be closed without reaching the project host over the
 network is closed, and the database tier is certified live and provably
-identical to the certified local schema. But G4, G6 and G7 are pilot-critical
-and have never been exercised: nobody has loaded an authenticated page against
+identical to the certified local schema. W14-B closed the one gap that was a
+repository defect rather than an environment limit: notifications now have a
+worker that delivers them (`BTG_AI_WORKFLOW_OS.md`). But G4, G6 and G7 are
+pilot-critical and have never been exercised: nobody has loaded an authenticated page against
 live infrastructure, and no file has been uploaded. Calling that pilot-ready
 would be a claim the evidence does not support, so it is not made.
 
@@ -83,6 +86,12 @@ would be a claim the evidence does not support, so it is not made.
    `BLOCKED_EXTERNAL`. The deterministic tutor safety boundary — screening,
    refusal, schema validation, overclaim guard, provider-unavailable fallback —
    is green without it.
-3. **Supabase free-tier project limit** (2 active projects, both occupied) —
+3. **No service-role key in this session.** The W14-B drain function is
+   `service_role`-only by design, so nothing in this session may invoke it on
+   a schedule. The queue, worker and dead-letter behaviour are certified; the
+   *invoker* (a cron job, an edge function, or a scheduled task holding the
+   key) is deployment configuration, not repository code, and is listed as a
+   deployment step rather than claimed as done.
+4. **Supabase free-tier project limit** (2 active projects, both occupied) —
    already worked around by using the empty project rather than touching the
    unrelated live one.
