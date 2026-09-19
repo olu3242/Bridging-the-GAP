@@ -10,6 +10,7 @@ import {
   startStep,
 } from "@/server/services/pathway-service";
 import { requireContext } from "@/server/services/actor";
+import { continueLearnerWork } from "@/server/services/workflow-service";
 import { type ActionState, errorState, fieldErrorsFrom, successState, toActionState } from "./action-result";
 
 export async function generatePathwayAction(_prev: ActionState): Promise<ActionState> {
@@ -38,6 +39,8 @@ export async function startStepAction(_prev: ActionState, formData: FormData): P
     stepId = parsed.data.stepId;
 
     await startStep(supabase, stepId);
+    // The domain moved; let the runtime notice and carry the journey on.
+    await continueLearnerWork(supabase);
     await openStepLearning(supabase, stepId);
   } catch (error) {
     return toActionState(error);
@@ -61,6 +64,8 @@ export async function completeActivityAction(_prev: ActionState, formData: FormD
     }
 
     await completeActivity(supabase, parsed.data.activityId, parsed.data.output);
+    // The domain moved; let the runtime notice and carry the journey on.
+    await continueLearnerWork(supabase);
   } catch (error) {
     return toActionState(error);
   }

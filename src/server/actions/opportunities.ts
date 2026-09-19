@@ -11,6 +11,7 @@ import {
   withdrawApplication,
 } from "@/server/services/opportunity-service";
 import { requireContext } from "@/server/services/actor";
+import { continueLearnerWork } from "@/server/services/workflow-service";
 import { type ActionState, errorState, fieldErrorsFrom, successState, toActionState } from "./action-result";
 
 const applySchema = z.object({
@@ -54,6 +55,8 @@ export async function applyAction(_prev: ActionState, formData: FormData): Promi
       note: parsed.data.note,
       sharedSkillIds: parsed.data.sharedSkillIds,
     });
+    // The domain moved; let the runtime notice and carry the journey on.
+    await continueLearnerWork(supabase);
   } catch (error) {
     return toActionState(error);
   }
@@ -134,6 +137,8 @@ export async function respondToOfferAction(
 
     accepted = parsed.data.accept === "yes";
     await respondToOffer(supabase, { applicationId: parsed.data.applicationId, accept: accepted });
+    // Accepting an offer is the outcome the coordinator waits for.
+    await continueLearnerWork(supabase);
   } catch (error) {
     return toActionState(error);
   }

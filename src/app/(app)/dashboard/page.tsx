@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
 import { NotificationInbox } from "@/components/app/notification-inbox";
+import { JourneyPanel } from "@/components/app/journey-panel";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
 import { getLearnerProfile, getProfile } from "@/server/services/onboarding-service";
@@ -12,6 +13,7 @@ import { listNotifications } from "@/server/services/notification-service";
 import { listOrganizationsForActor } from "@/server/services/organization-service";
 import { getCompetencyGaps } from "@/server/services/diagnostic-service";
 import { getLearnerOutcomes } from "@/server/services/outcomes-service";
+import { getMyJourney } from "@/server/services/workflow-service";
 import { FUNNEL_STEPS } from "@/domain/outcomes/stages";
 import { compareByPriority, gapSeverity, GAP_SEVERITY_COPY, LEVEL_LABELS, type CompetencyLevel } from "@/domain/competency/levels";
 import { markNotificationReadAction } from "@/server/actions/notifications";
@@ -30,7 +32,7 @@ export default async function DashboardPage({
   const [{ welcome }, actor] = await Promise.all([searchParams, requireActor()]);
   const supabase = await createSupabaseServerClient();
 
-  const [profile, learnerProfile, notifications, organizations, gaps, outcomes, auditResult] =
+  const [profile, learnerProfile, notifications, organizations, gaps, outcomes, journey, auditResult] =
     await Promise.all([
     getProfile(supabase, actor.profileId),
     getLearnerProfile(supabase, actor.profileId),
@@ -38,6 +40,7 @@ export default async function DashboardPage({
     listOrganizationsForActor(supabase),
     getCompetencyGaps(supabase, actor.profileId),
     getLearnerOutcomes(supabase, actor.profileId),
+    getMyJourney(supabase, actor.profileId),
     supabase
       .from("audit_events")
       .select("id, action, object_type, occurred_at")
@@ -81,6 +84,8 @@ export default async function DashboardPage({
           Your goals and consents are recorded. Every recommendation from here is built on them.
         </Alert>
       ) : null}
+
+      <JourneyPanel instance={journey.instance} stages={journey.stages} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

@@ -53,7 +53,7 @@ export async function answerBaselineQuestionAction(
          the learner reaches the results page, without the product depending on
          a deployed invoker. */
       await continueLearnerWork(supabase, {
-        workflows: ["pathway_generation"],
+        workflows: ["BTG_LEARNER_TO_OPPORTUNITY", "pathway_generation"],
         subjectType: "diagnostic_attempt",
         subjectId: parsed.data.attemptId,
       });
@@ -85,7 +85,7 @@ export async function submitBaselineAction(_prev: ActionState, formData: FormDat
     assertCan(actor, "learner.dashboard.view");
     await submitAttempt(supabase, attemptId);
     await continueLearnerWork(supabase, {
-      workflows: ["pathway_generation"],
+      workflows: ["BTG_LEARNER_TO_OPPORTUNITY", "pathway_generation"],
       subjectType: "diagnostic_attempt",
       subjectId: attemptId,
     });

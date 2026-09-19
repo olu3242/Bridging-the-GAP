@@ -5,6 +5,7 @@ import { assertCan } from "@/domain/identity/actor";
 import { assignProjectSchema, submitEvidenceSchema } from "@/domain/evidence/verification";
 import { assignProject, submitEvidence } from "@/server/services/project-service";
 import { requireContext } from "@/server/services/actor";
+import { continueLearnerWork } from "@/server/services/workflow-service";
 import { type ActionState, errorState, fieldErrorsFrom, toActionState } from "./action-result";
 
 export async function assignProjectAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -20,6 +21,8 @@ export async function assignProjectAction(_prev: ActionState, formData: FormData
     if (!parsed.success) return errorState("That brief is not recognised.", fieldErrorsFrom(parsed.error));
 
     const project = await assignProject(supabase, parsed.data.briefSlug, parsed.data.stepId);
+    // The domain moved; let the runtime notice and carry the journey on.
+    await continueLearnerWork(supabase);
     projectId = project.id;
   } catch (error) {
     return toActionState(error);
@@ -55,6 +58,8 @@ export async function submitEvidenceAction(_prev: ActionState, formData: FormDat
       aiDeclared: parsed.data.aiDeclared,
       aiNote: parsed.data.aiNote || undefined,
     });
+    // The domain moved; let the runtime notice and carry the journey on.
+    await continueLearnerWork(supabase);
   } catch (error) {
     return toActionState(error);
   }

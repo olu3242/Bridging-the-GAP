@@ -26,8 +26,12 @@ import { fromPostgresError } from "@/domain/shared/errors";
 
 /** A self-startable workflow, as the database's allowlist names it. */
 export type SelfStartableWorkflow =
+  | "BTG_LEARNER_TO_OPPORTUNITY"
   | "baseline_diagnostic"
   | "pathway_generation"
+  | "verification"
+  | "mentorship"
+  | "opportunities"
   | "matching";
 
 export interface WorkflowContinuation {
@@ -416,4 +420,34 @@ export async function getWorkflowTimeline(
     .limit(limit);
   if (error) throw fromPostgresError(error, "We could not load that timeline.");
   return (data ?? []) as WorkflowTimelineRow[];
+}
+
+/**
+ * The learner's own run of BTG_LEARNER_TO_OPPORTUNITY, for the dashboard. One
+ * row per stage, in order, from the projection the operator console reads —
+ * the learner simply sees only their own.
+ */
+export async function getMyJourney(
+  supabase: SupabaseClient,
+  profileId: string,
+): Promise<{ instance: WorkflowInstanceRow | null; stages: WorkflowStateRow[] }> {
+  const { data: instances, error } = await supabase
+    .from("workflow_instance_view")
+    .select("*")
+    .eq("workflow", "BTG_LEARNER_TO_OPPORTUNITY")
+    .eq("subject_profile_id", profileId)
+    .limit(1);
+  if (error) throw fromPostgresError(error, "We could not load your journey.");
+
+  const instance = ((instances ?? [])[0] as WorkflowInstanceRow | undefined) ?? null;
+  if (!instance) return { instance: null, stages: [] };
+
+  const { data: stages, error: stageError } = await supabase
+    .from("my_workflow_state")
+    .select("*")
+    .eq("instance_id", instance.instance_id)
+    .order("step_ordinal", { ascending: true });
+  if (stageError) throw fromPostgresError(stageError, "We could not load your journey.");
+
+  return { instance, stages: (stages ?? []) as WorkflowStateRow[] };
 }

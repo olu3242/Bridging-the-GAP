@@ -4,6 +4,7 @@ import { z } from "zod";
 import { assertCan } from "@/domain/identity/actor";
 import { requestMentorship, respondToMentorship } from "@/server/services/mentorship-service";
 import { requireContext } from "@/server/services/actor";
+import { continueLearnerWork } from "@/server/services/workflow-service";
 import { type ActionState, errorState, fieldErrorsFrom, successState, toActionState } from "./action-result";
 
 const requestSchema = z.object({
@@ -32,6 +33,8 @@ export async function requestMentorshipAction(
     if (!parsed.success) return errorState("Check the highlighted fields.", fieldErrorsFrom(parsed.error));
 
     await requestMentorship(supabase, parsed.data);
+    // The domain moved; let the runtime notice and carry the journey on.
+    await continueLearnerWork(supabase);
   } catch (error) {
     return toActionState(error);
   }
