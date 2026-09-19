@@ -315,3 +315,105 @@ export async function completeWorkForReview(
   if (error || !data) return false;
   return completeWorkForSubject(supabase, "evidence", (data as { evidence_id: string }).evidence_id);
 }
+
+// ------------------------------------------------- operator control plane ---
+
+export interface WorkflowInstanceRow {
+  instance_id: string;
+  workflow: string;
+  workflow_name: string;
+  definition_version: number;
+  instance_status: string;
+  subject_profile_id: string | null;
+  organization_id: string | null;
+  started_at: string | null;
+  settled_at: string | null;
+  instance_failure: string | null;
+  steps_total: number;
+  steps_completed: number;
+  steps_failed: number;
+  steps_escalated: number;
+  attempts_used: number;
+  current_work_item_id: string | null;
+  current_step: string | null;
+  current_step_ordinal: number | null;
+  current_item_type: string | null;
+  current_handler: string | null;
+  current_step_status: string | null;
+  current_attempts: number | null;
+  current_max_attempts: number | null;
+  current_failure: string | null;
+  owner: string | null;
+  waiting_on: string;
+  next_step: string | null;
+  subject_type: string | null;
+  subject_id: string | null;
+  deadline_at: string | null;
+  overdue: boolean;
+  sla_at_risk: boolean;
+  last_event_at: string | null;
+}
+
+export interface WorkflowBlockerRow extends WorkflowInstanceRow {
+  blocker: string;
+  severity: number;
+}
+
+export interface WorkflowTimelineRow {
+  workflow_instance_id: string;
+  occurred_at: string;
+  source: string;
+  event: string;
+  step_key: string | null;
+  object_id: string | null;
+  attempt: number;
+  emitted_by: string;
+  detail: Record<string, unknown> | null;
+}
+
+export async function listWorkflowBlockers(
+  supabase: SupabaseClient,
+  limit = 50,
+): Promise<WorkflowBlockerRow[]> {
+  const { data, error } = await supabase
+    .from("workflow_blockers_view")
+    .select("*")
+    .order("severity", { ascending: true })
+    .order("started_at", { ascending: true })
+    .limit(limit);
+  if (error) throw fromPostgresError(error, "We could not load the blocked runs.");
+  return (data ?? []) as WorkflowBlockerRow[];
+}
+
+export async function listWorkflowInstances(
+  supabase: SupabaseClient,
+  options: { workflow?: string; open?: boolean; limit?: number } = {},
+): Promise<WorkflowInstanceRow[]> {
+  let query = supabase
+    .from("workflow_instance_view")
+    .select("*")
+    .order("started_at", { ascending: false })
+    .limit(options.limit ?? 50);
+  if (options.workflow) query = query.eq("workflow", options.workflow);
+  if (options.open) query = query.in("instance_status", ["created", "active", "waiting"]);
+
+  const { data, error } = await query;
+  if (error) throw fromPostgresError(error, "We could not load the workflow runs.");
+  return (data ?? []) as WorkflowInstanceRow[];
+}
+
+/** Operator only; the view returns nothing to anybody else. */
+export async function getWorkflowTimeline(
+  supabase: SupabaseClient,
+  instanceId: string,
+  limit = 200,
+): Promise<WorkflowTimelineRow[]> {
+  const { data, error } = await supabase
+    .from("workflow_timeline_view")
+    .select("*")
+    .eq("workflow_instance_id", instanceId)
+    .order("occurred_at", { ascending: true })
+    .limit(limit);
+  if (error) throw fromPostgresError(error, "We could not load that timeline.");
+  return (data ?? []) as WorkflowTimelineRow[];
+}

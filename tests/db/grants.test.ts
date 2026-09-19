@@ -226,7 +226,20 @@ describe("the ledger is not writable from a session", () => {
 });
 
 describe("every view resolves RLS as the caller", () => {
-  it("declares security_invoker on all of them", async () => {
+  /**
+   * The one exception, and why. A view over a table no session role may read
+   * returns nothing to everybody under invoker semantics, so it carries
+   * definer semantics with the authorization written into the view body
+   * instead — the same shape and reason as public.cohort_outcomes. Each entry
+   * names the predicate that must appear in the definition, so an exception
+   * cannot become a silent hole: dropping the gate fails this test.
+   */
+  const DEFINER_VIEWS: Record<string, string> = {
+    // reads btg.orchestration_events, which is service_role only
+    workflow_timeline_view: "is_operator()",
+  };
+
+  it("declares security_invoker on every view that can carry it", async () => {
     // A view left on definer semantics would read past the caller's RLS and
     // leak other learners' rows through an innocuous-looking read model.
     const rows = await sql<{ relname: string; invoker: string }>(
@@ -239,7 +252,18 @@ describe("every view resolves RLS as the caller", () => {
     );
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
+      if (row.relname in DEFINER_VIEWS) continue;
       expect(row.invoker, `${row.relname} is not security_invoker`).toBe("true");
+    }
+  });
+
+  it("writes the authorization into every view that cannot", async () => {
+    for (const [view, predicate] of Object.entries(DEFINER_VIEWS)) {
+      const [row] = await sql<{ def: string }>(
+        "select pg_get_viewdef($1::regclass) as def",
+        [`public.${view}`],
+      );
+      expect(row.def, `${view} has no inlined authorization`).toContain(predicate);
     }
   });
 
