@@ -41,15 +41,74 @@ export async function asUser<T>(
   }
 }
 
-/** Runs a block with no session at all (the `anon` case). */
+/**
+ * Runs a block as the schema owner with a session claim set, which is the
+ * context a SECURITY DEFINER command executes in: it holds EXECUTE on the
+ * internal writers, and `auth.uid()` still resolves. Use this to exercise a
+ * function that is deliberately not callable by `authenticated`.
+ */
+export async function asOwnerWithClaim<T>(
+  userId: string,
+  fn: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query("select set_config('request.jwt.claim.sub', $1, true)", [userId]);
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Runs a block as the `anon` role — an unauthenticated visitor, which is what
+ * PostgREST uses when no bearer token is present.
+ *
+ * Two bugs fixed here: it previously set role `authenticated` despite its
+ * name, which tested "authenticated with no session" rather than anon at all;
+ * and it had no catch, so a throwing block released a connection still inside
+ * an aborted transaction. That poisoned the pooled connection and made the
+ * next unrelated query fail with "current transaction is aborted", which made
+ * the whole suite order-dependent.
+ */
 export async function asAnon<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query("begin");
-    await client.query("set local role authenticated");
+    await client.query("set local role anon");
     const result = await fn(client);
     await client.query("rollback");
     return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Runs a block as `service_role` — the worker identity. The W14 execution and
+ * workflow runtimes are granted to this role and to no session role, so this
+ * is the only context in which execution state may be mutated.
+ */
+export async function asServiceRole<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query("set local role service_role");
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
   } finally {
     client.release();
   }
@@ -121,4 +180,240 @@ export async function expectRejection(promise: Promise<unknown>): Promise<{ code
     if (pgError.message === "expected the database to reject this statement") throw error;
     return { code: pgError.code, message: pgError.message };
   }
+}
+
+// ------------------------------------------------------------- W02 helpers ---
+
+export interface WalkQuestion {
+  question_id: string;
+  competency_id: string;
+  level: number;
+  options: Array<{ id: string; label: string }>;
+}
+
+/** Reads the answer key as the cluster owner — test scaffolding only. */
+export async function correctOptionFor(questionId: string): Promise<string> {
+  const [row] = await sql<{ id: string }>(
+    "select correct_option_ids[1] as id from public.diagnostic_answer_keys where question_id = $1",
+    [questionId],
+  );
+  return row.id;
+}
+
+export async function nextQuestionFor(userId: string, attemptId: string): Promise<WalkQuestion | null> {
+  return asUser(userId, async (client) => {
+    const result = await client.query(
+      "select question_id, competency_id, level, options from public.next_diagnostic_question($1)",
+      [attemptId],
+    );
+    return (result.rows[0] as WalkQuestion) ?? null;
+  });
+}
+
+export async function startBaseline(userId: string): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.start_diagnostic_attempt()).id as id");
+    return result.rows[0].id as string;
+  });
+}
+
+/**
+ * Walks an attempt to the end, answering every question correctly or
+ * incorrectly, then submits. Returns the scored attempt.
+ */
+export async function walkBaseline(
+  userId: string,
+  options: { correctly: boolean; submit?: boolean } = { correctly: true },
+): Promise<{ attemptId: string; asked: Array<{ competency_id: string; level: number }> }> {
+  const attemptId = await startBaseline(userId);
+  const asked: Array<{ competency_id: string; level: number }> = [];
+
+  for (let guard = 0; guard < 40; guard += 1) {
+    const question = await nextQuestionFor(userId, attemptId);
+    if (!question) break;
+    const correct = await correctOptionFor(question.question_id);
+    const choice = options.correctly
+      ? correct
+      : (question.options.find((o) => o.id !== correct)?.id ?? correct);
+
+    await asUser(userId, (client) =>
+      client.query("select public.answer_diagnostic_question($1, $2, $3)", [
+        attemptId,
+        question.question_id,
+        [choice],
+      ]),
+    );
+    asked.push({ competency_id: question.competency_id, level: question.level });
+  }
+
+  if (options.submit !== false) {
+    await asUser(userId, (client) =>
+      client.query("select public.submit_diagnostic_attempt($1)", [attemptId]),
+    );
+  }
+  return { attemptId, asked };
+}
+
+/** Pushes a learner through onboarding and the baseline, as the journey does. */
+export async function completeBaselineJourney(userId: string): Promise<string> {
+  await completeOnboarding(userId);
+  const { attemptId } = await walkBaseline(userId, { correctly: true });
+  return attemptId;
+}
+
+// ------------------------------------------------- pathway / learning helpers ---
+
+export async function generatePathway(userId: string): Promise<{ id: string; version: number }> {
+  return asUser(userId, async (client) => {
+    const result = await client.query(
+      "select (public.generate_pathway()).id as id, (public.generate_pathway(null)).version as version",
+    );
+    return result.rows[0] as { id: string; version: number };
+  });
+}
+
+/** Single-call generation; the two-call form above would create two versions. */
+export async function generatePathwayOnce(userId: string): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.generate_pathway()).id as id");
+    return result.rows[0].id as string;
+  });
+}
+
+export async function pathwaySteps(userId: string, pathwayId: string) {
+  return asUser(userId, async (client) => {
+    const result = await client.query(
+      `select id, position, status, competency_id, competency_slug, competency_name,
+              from_level, target_level, depth, blocked_by, rationale
+       from public.pathway_step_view where pathway_id = $1 order by position`,
+      [pathwayId],
+    );
+    return result.rows as Array<{
+      id: string;
+      position: number;
+      status: string;
+      competency_id: string;
+      competency_slug: string;
+      competency_name: string;
+      from_level: number;
+      target_level: number;
+      depth: number;
+      blocked_by: string[];
+      rationale: string;
+    }>;
+  });
+}
+
+/** Completes every activity in every module attached to a pathway step. */
+export async function completeStepLearning(userId: string, stepId: string): Promise<void> {
+  await asUser(userId, (client) => client.query("select * from public.open_step_learning($1)", [stepId]));
+
+  const activities = await sql<{ id: string; requires_output: boolean }>(
+    `select a.id, a.requires_output
+     from public.learner_module_progress lmp
+     join public.learning_activities a on a.module_id = lmp.module_id
+     where lmp.profile_id = $1 and lmp.pathway_step_id = $2
+     order by a.sort_order`,
+    [userId, stepId],
+  );
+
+  for (const activity of activities) {
+    await asUser(userId, (client) =>
+      client.query("select public.complete_learning_activity($1, $2)", [
+        activity.id,
+        activity.requires_output ? "Recorded what I tried and what changed." : null,
+      ]),
+    );
+  }
+}
+
+// ------------------------------------------ projects / verification helpers ---
+
+export async function grantPersonaOperator(userId: string): Promise<void> {
+  await grantPersona(userId, "operator");
+}
+
+export async function makeReviewer(label: string) {
+  const reviewer = await createUser(label);
+  await grantPersona(reviewer.id, "reviewer");
+  return reviewer;
+}
+
+export async function assignProject(
+  userId: string,
+  briefSlug: string,
+  stepId?: string,
+): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.assign_project($1, $2)).id as id", [
+      briefSlug,
+      stepId ?? null,
+    ]);
+    return result.rows[0].id as string;
+  });
+}
+
+export async function submitEvidence(
+  userId: string,
+  projectId: string,
+  summary = "I built the thing the brief asked for, tested it on three real cases, and recorded what changed between runs.",
+): Promise<string> {
+  return asUser(userId, async (client) => {
+    const result = await client.query("select (public.submit_evidence($1, $2)).id as id", [
+      projectId,
+      summary,
+    ]);
+    return result.rows[0].id as string;
+  });
+}
+
+export async function openReviewFor(evidenceId: string): Promise<string> {
+  const [row] = await sql<{ id: string }>(
+    "select id from public.review_assignments where evidence_id = $1 order by assigned_at desc limit 1",
+    [evidenceId],
+  );
+  return row.id;
+}
+
+/** Scores every criterion on the evidence's rubric at the given score. */
+export async function scoresFor(evidenceId: string, score = 4) {
+  const rows = await sql<{ id: string }>(
+    `select c.id from public.rubric_criteria c
+     join public.evidence e on e.rubric_id = c.rubric_id
+     where e.id = $1 order by c.sort_order`,
+    [evidenceId],
+  );
+  return rows.map((r) => ({ criterion_id: r.id, score }));
+}
+
+export async function decideReview(
+  reviewerId: string,
+  reviewId: string,
+  decision: "approved" | "rejected" | "revision_required",
+  rationale = "Reviewed against every required criterion and recorded the reasoning.",
+  scores?: Array<{ criterion_id: string; score: number }>,
+): Promise<void> {
+  await asUser(reviewerId, (client) =>
+    client.query("select public.decide_review($1, $2, $3, $4::jsonb)", [
+      reviewId,
+      decision,
+      rationale,
+      JSON.stringify(scores ?? []),
+    ]),
+  );
+}
+
+/** Full prove-spine: assign → submit → claim → approve. Returns ids. */
+export async function proveCompetency(
+  learnerId: string,
+  reviewerId: string,
+  briefSlug: string,
+  stepId?: string,
+): Promise<{ projectId: string; evidenceId: string; reviewId: string }> {
+  const projectId = await assignProject(learnerId, briefSlug, stepId);
+  const evidenceId = await submitEvidence(learnerId, projectId);
+  const reviewId = await openReviewFor(evidenceId);
+  await asUser(reviewerId, (client) => client.query("select public.claim_review($1)", [reviewId]));
+  await decideReview(reviewerId, reviewId, "approved", undefined, await scoresFor(evidenceId, 4));
+  return { projectId, evidenceId, reviewId };
 }

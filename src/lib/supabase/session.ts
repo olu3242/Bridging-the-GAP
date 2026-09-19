@@ -1,9 +1,31 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { isSupabaseConfigured, publicEnv } from "@/lib/env";
+import { PRODUCT_HOME, isPathAllowed, resolveDestination } from "@/domain/identity/journey";
+import type { OnboardingState } from "@/domain/identity/lifecycle";
+import type { Persona } from "@/domain/identity/persona";
 
 /** Routes that require an authenticated actor. */
-const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/organizations", "/settings", "/console"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/onboarding",
+  "/organizations",
+  "/baseline",
+  "/pathway",
+  "/projects",
+  "/portfolio",
+  "/review",
+  "/opportunities",
+  "/mentorship",
+  "/tutor",
+  "/outcomes",
+];
+/** Routes a signed-in learner should never sit on. */
+const AUTH_PREFIXES = ["/sign-in", "/join"];
+
+function matches(pathname: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -28,18 +50,56 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isProtected = matches(pathname, PROTECTED_PREFIXES);
+  const isAuthRoute = matches(pathname, AUTH_PREFIXES);
 
-  if (!user && isProtected) {
+  if (!user) {
+    if (isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/sign-in";
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
+    return response;
+  }
+
+  // Signed in. Resolve where this learner actually belongs from persisted
+  // state, rather than assuming the dashboard.
+  if (!isProtected && !isAuthRoute) return response;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_state, baseline_completed_at, active_pathway_id, primary_persona")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const state = {
+    authenticated: true,
+    onboardingState: (profile?.onboarding_state as OnboardingState) ?? "not_started",
+    baselineCompleted: Boolean(profile?.baseline_completed_at),
+    pathwayGenerated: Boolean(profile?.active_pathway_id),
+    primaryPersona: profile?.primary_persona as Persona | undefined,
+  };
+
+  if (isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    url.searchParams.set("next", pathname);
+    url.pathname = resolveDestination(state);
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
-  if (user && (pathname === "/sign-in" || pathname === "/join")) {
+  if (!isPathAllowed(state, pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = resolveDestination(state);
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // Onboarding is finished: the onboarding route itself is no longer a valid
+  // place to sit.
+  if (pathname === "/onboarding" && state.onboardingState === "completed") {
+    const url = request.nextUrl.clone();
+    url.pathname = PRODUCT_HOME;
     url.search = "";
     return NextResponse.redirect(url);
   }

@@ -6,6 +6,7 @@ import {
   expectRejection,
   grantPersona,
   sql,
+  walkBaseline,
 } from "./helpers";
 
 describe("profile visibility", () => {
@@ -81,6 +82,40 @@ describe("profile visibility", () => {
       return result.rowCount;
     });
     expect(visible).toBe(0);
+  });
+});
+
+describe("reviewer visibility is narrow", () => {
+  it("lets a learner see who reviewed their own evidence, and no one else", async () => {
+    const { makeReviewer, proveCompetency, walkBaseline } = await import("./helpers");
+    const [learnerA, learnerB, reviewer] = await Promise.all([
+      createUser("vis-a"),
+      createUser("vis-b"),
+      makeReviewer("vis-reviewer"),
+    ]);
+    await walkBaseline(learnerA.id, { correctly: false });
+    await proveCompetency(learnerA.id, reviewer.id, "brief-ai-concepts");
+
+    // A saw their reviewer.
+    const seenByA = await asUser(learnerA.id, async (client) => {
+      const result = await client.query("select id from public.profiles where id = $1", [reviewer.id]);
+      return result.rowCount;
+    });
+    expect(seenByA).toBe(1);
+
+    // B, who has no review by this reviewer, still cannot.
+    const seenByB = await asUser(learnerB.id, async (client) => {
+      const result = await client.query("select id from public.profiles where id = $1", [reviewer.id]);
+      return result.rowCount;
+    });
+    expect(seenByB).toBe(0);
+
+    // And A still cannot read an unrelated learner.
+    const crossRead = await asUser(learnerA.id, async (client) => {
+      const result = await client.query("select id from public.profiles where id = $1", [learnerB.id]);
+      return result.rowCount;
+    });
+    expect(crossRead).toBe(0);
   });
 });
 
@@ -174,22 +209,36 @@ describe("privilege escalation", () => {
     expect(rejection.code).toBe("42501");
   });
 
+  /* Migration 20260918003800 closed the caller-facing grant on
+     record_audit_event, because it let any session write arbitrary lifecycle
+     actions into the ledger. The property these tests exist for -- that the
+     actor is stamped from the session and cannot be supplied -- is unchanged,
+     so they now assert it through a governed command instead of by calling the
+     writer directly. That the writer is unreachable is asserted in
+     tests/db/grants.test.ts. */
   it("stamps the audit actor from the session, so it cannot be forged", async () => {
     const [ada, ben] = await Promise.all([createUser("ada"), createUser("ben")]);
-    await asUser(ada.id, (client) =>
-      client.query(
-        "select public.record_audit_event('identity.session.signed_in', 'session', $1, null, null, null, null, 'info', null, 'test')",
-        [ben.id],
-      ),
+    await walkBaseline(ada.id, { correctly: false });
+
+    const events = await sql<{ actor_profile_id: string }>(
+      `select actor_profile_id from public.audit_events
+       where action = 'diagnostic.attempt.scored' and actor_profile_id = $1`,
+      [ada.id],
     );
-    const [event] = await sql<{ actor_profile_id: string }>(
-      "select actor_profile_id from public.audit_events where workflow = 'test' and object_id = $1",
+    expect(events).toHaveLength(1);
+    expect(events[0].actor_profile_id).toBe(ada.id);
+    // Nothing Ada did could attribute a diagnostic event to Ben. Ben has his
+    // own signup event, written by the auth trigger under his own id, which is
+    // exactly the attribution being asserted.
+    const bens = await sql<{ action: string }>(
+      "select action from public.audit_events where actor_profile_id = $1 order by action",
       [ben.id],
     );
-    expect(event.actor_profile_id).toBe(ada.id);
+    expect(bens.map((b) => b.action)).toEqual(["identity.session.signed_up"]);
   });
 
   it("refuses an audit event with no session", async () => {
+    // Called as the owner, which holds EXECUTE, with no request claim set.
     const rejection = await expectRejection(
       sql("select public.record_audit_event('identity.session.signed_in', 'session')"),
     );
@@ -200,9 +249,8 @@ describe("privilege escalation", () => {
 describe("notifications", () => {
   it("keeps an inbox private to its owner", async () => {
     const [ada, ben] = await Promise.all([createUser("ada"), createUser("ben")]);
-    await asUser(ada.id, (client) =>
-      client.query("select public.enqueue_notification($1, 'test.private', 'Private', 'k-private')", [ada.id]),
-    );
+    // Seeded the way a real notification arrives: from a governed command.
+    await walkBaseline(ada.id, { correctly: false });
     const seen = await asUser(ben.id, async (client) => {
       const result = await client.query("select id from public.notifications where profile_id = $1", [ada.id]);
       return result.rowCount;
@@ -222,18 +270,15 @@ describe("notifications", () => {
 
   it("is idempotent for a repeated domain event", async () => {
     const ada = await createUser("ada");
-    const ids = await asUser(ada.id, async (client) => {
-      const first = await client.query(
-        "select public.enqueue_notification($1, 'test.dedupe', 'Once', 'k-dedupe') as id",
-        [ada.id],
-      );
-      const second = await client.query(
-        "select public.enqueue_notification($1, 'test.dedupe', 'Once', 'k-dedupe') as id",
-        [ada.id],
-      );
-      return [first.rows[0].id, second.rows[0].id];
-    });
-    expect(ids[0]).toBe(ids[1]);
+    // btg.notify is the path every command uses. It is granted to no session
+    // role, so this runs as the owner, exactly as a definer command does.
+    const ids = await sql<{ id: string }>(
+      `select btg.notify($1, 'test.dedupe', 'Once', 'k-dedupe') as id
+       union all
+       select btg.notify($1, 'test.dedupe', 'Once', 'k-dedupe') as id`,
+      [ada.id],
+    );
+    expect(ids[0].id).toBe(ids[1].id);
     const [{ count }] = await sql<{ count: string }>(
       "select count(*)::text as count from public.notifications where profile_id = $1",
       [ada.id],

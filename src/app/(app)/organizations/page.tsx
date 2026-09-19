@@ -7,7 +7,12 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
 import { assertCan } from "@/domain/identity/actor";
 import { listOrganizationsForActor } from "@/server/services/organization-service";
+import { getCohortOutcomesFor, listGovernedCohorts } from "@/server/services/outcomes-service";
+import { CohortOutcomes } from "@/components/app/cohort-outcomes";
+import { can } from "@/domain/identity/actor";
 import { createOrganizationAction } from "@/server/actions/organizations";
+import { getMyWorkQueue } from "@/server/services/workflow-service";
+import { WorkQueuePanel } from "@/components/app/work-queue-panel";
 import { PERSONA_LABELS } from "@/domain/identity/persona";
 
 export const metadata: Metadata = { title: "Organizations" };
@@ -19,6 +24,23 @@ export default async function OrganizationsPage() {
 
   const supabase = await createSupabaseServerClient();
   const organizations = await listOrganizationsForActor(supabase);
+  // Application decisions this organization owes, with their deadlines. The
+  // decision is still made through advance_application on the opportunity.
+  const workQueue = await getMyWorkQueue(supabase, { workflow: "opportunities" });
+
+  // The cohort panel is only assembled for a persona that may read org
+  // outcomes. Seeing it never implies access: `cohort_outcomes` re-authorizes
+  // the caller against each cohort's organization.
+  const showsCohorts = can(actor, "outcomes.read_org");
+  const cohorts = showsCohorts
+    ? await listGovernedCohorts(
+        supabase,
+        organizations.map((organization) => organization.id),
+      )
+    : [];
+  const cohortOutcomes = showsCohorts
+    ? await getCohortOutcomesFor(supabase, cohorts)
+    : new Map();
 
   return (
     <div className="space-y-5">
@@ -30,7 +52,15 @@ export default async function OrganizationsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-        <Card>
+        <WorkQueuePanel
+        rows={workQueue}
+        title="Applications waiting on a decision"
+        description="Each item is a candidate waiting on your organization. Move the application, then mark the step done."
+        emptyTitle="Nothing waiting"
+        emptyDescription="Applications appear here as candidates apply to your openings."
+      />
+
+      <Card>
           <CardHeader>
             <CardTitle>Your organizations</CardTitle>
             <CardDescription>Only organizations your memberships allow you to see.</CardDescription>
@@ -79,6 +109,8 @@ export default async function OrganizationsPage() {
 
         <CreateOrganizationForm action={createOrganizationAction} />
       </div>
+
+      {showsCohorts ? <CohortOutcomes cohorts={cohorts} outcomes={cohortOutcomes} /> : null}
     </div>
   );
 }

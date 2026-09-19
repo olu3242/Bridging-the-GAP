@@ -54,9 +54,242 @@ export const onboardingMachine = createStateMachine<OnboardingState>("onboarding
   completed: [],
 });
 
+export const DIAGNOSTIC_STATUSES = ["draft", "published", "archived"] as const;
+export type DiagnosticStatus = (typeof DIAGNOSTIC_STATUSES)[number];
+
+export const diagnosticMachine = createStateMachine<DiagnosticStatus>("diagnostic", {
+  draft: ["published", "archived"],
+  published: ["archived"],
+  archived: [],
+});
+
+export const ATTEMPT_STATUSES = ["in_progress", "submitted", "scored", "abandoned"] as const;
+export type AttemptStatus = (typeof ATTEMPT_STATUSES)[number];
+
+/**
+ * Scoring is reachable only through submission: a client cannot jump an
+ * attempt straight to scored.
+ */
+export const attemptMachine = createStateMachine<AttemptStatus>("diagnostic_attempt", {
+  in_progress: ["submitted", "abandoned"],
+  submitted: ["scored", "abandoned"],
+  scored: [],
+  abandoned: [],
+});
+
+export const PATHWAY_STATUSES = ["draft", "active", "superseded", "archived"] as const;
+export type PathwayStatus = (typeof PATHWAY_STATUSES)[number];
+
+export const pathwayMachine = createStateMachine<PathwayStatus>("pathway", {
+  draft: ["active", "archived"],
+  active: ["superseded", "archived"],
+  superseded: [],
+  archived: [],
+});
+
+export const STEP_STATUSES = ["locked", "available", "in_progress", "completed", "skipped"] as const;
+export type StepStatus = (typeof STEP_STATUSES)[number];
+
+/** completed → in_progress exists so a re-assessment can reopen a step. */
+export const pathwayStepMachine = createStateMachine<StepStatus>("pathway_step", {
+  locked: ["available"],
+  available: ["in_progress", "skipped"],
+  in_progress: ["completed", "available"],
+  completed: ["in_progress"],
+  skipped: [],
+});
+
+export const PROGRESS_STATUSES = ["locked", "available", "in_progress", "completed"] as const;
+export type ProgressStatus = (typeof PROGRESS_STATUSES)[number];
+
+export const moduleProgressMachine = createStateMachine<ProgressStatus>("module_progress", {
+  locked: ["available"],
+  available: ["in_progress"],
+  in_progress: ["completed", "available"],
+  completed: [],
+});
+
+export const PROJECT_STATUSES = [
+  "assigned", "started", "submitted", "under_review", "revision_required", "completed", "withdrawn",
+] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+export const projectMachine = createStateMachine<ProjectStatus>("project", {
+  assigned: ["started", "withdrawn"],
+  started: ["submitted", "withdrawn"],
+  submitted: ["under_review"],
+  under_review: ["revision_required", "completed"],
+  revision_required: ["submitted", "withdrawn"],
+  completed: [],
+  withdrawn: [],
+});
+
+export const EVIDENCE_STATUSES = [
+  "draft", "submitted", "under_review", "accepted", "rejected", "superseded",
+] as const;
+export type EvidenceStatus = (typeof EVIDENCE_STATUSES)[number];
+
+export const evidenceMachine = createStateMachine<EvidenceStatus>("evidence", {
+  draft: ["submitted"],
+  submitted: ["under_review", "superseded"],
+  under_review: ["accepted", "rejected", "superseded"],
+  accepted: [],
+  rejected: ["superseded"],
+  superseded: [],
+});
+
+export const REVIEW_STATUSES = [
+  "pending", "in_review", "approved", "rejected", "revision_required",
+] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+export const reviewMachine = createStateMachine<ReviewStatus>("review", {
+  pending: ["in_review", "approved", "rejected", "revision_required"],
+  in_review: ["approved", "rejected", "revision_required"],
+  approved: [],
+  rejected: [],
+  revision_required: [],
+});
+
+export const CREDENTIAL_STATUSES = ["issued", "revoked", "expired"] as const;
+export type CredentialStatus = (typeof CREDENTIAL_STATUSES)[number];
+
+export const credentialMachine = createStateMachine<CredentialStatus>("credential", {
+  issued: ["revoked", "expired"],
+  revoked: [],
+  expired: [],
+});
+
+export const OPPORTUNITY_STATUSES = ["draft", "open", "closed", "archived"] as const;
+export type OpportunityStatus = (typeof OPPORTUNITY_STATUSES)[number];
+
+export const opportunityMachine = createStateMachine<OpportunityStatus>("opportunity", {
+  draft: ["open", "archived"],
+  open: ["closed", "archived"],
+  closed: ["open", "archived"],
+  archived: [],
+});
+
+export const APPLICATION_STATUSES = [
+  "draft", "submitted", "under_review", "shortlisted", "rejected", "withdrawn", "offered", "accepted",
+] as const;
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+export const applicationMachine = createStateMachine<ApplicationStatus>("application", {
+  draft: [],
+  submitted: ["under_review", "withdrawn"],
+  under_review: ["shortlisted", "rejected", "withdrawn"],
+  shortlisted: ["offered", "rejected", "withdrawn"],
+  offered: ["accepted", "withdrawn"],
+  accepted: [],
+  rejected: [],
+  withdrawn: [],
+});
+
+export const MENTORSHIP_STATUSES = [
+  "requested", "accepted", "declined", "active", "completed", "ended",
+] as const;
+export type MentorshipStatus = (typeof MENTORSHIP_STATUSES)[number];
+
+export const mentorshipMachine = createStateMachine<MentorshipStatus>("mentorship", {
+  requested: ["accepted", "declined"],
+  accepted: ["active", "ended"],
+  declined: [],
+  active: ["completed", "ended"],
+  completed: [],
+  ended: [],
+});
+
+/**
+ * Notification delivery. This was the one status enum in the system with no
+ * machine registered, so its transitions were unguarded until the execution
+ * tier gave it a real lifecycle. `pending -> read` stays legal because an
+ * in-app notification is readable the moment it is written, so a learner can
+ * read one before the dispatcher has observed it.
+ */
+export const NOTIFICATION_STATUSES = ["pending", "sent", "read", "failed"] as const;
+export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number];
+
+export const notificationMachine = createStateMachine<NotificationStatus>("notification", {
+  pending: ["sent", "failed", "read"],
+  sent: ["read"],
+  read: [],
+  failed: ["pending"], // manual retry
+});
+
+/**
+ * W14-C execution state. These three machines govern the workflow runtime, not
+ * any domain fact: a definition version's publication lifecycle, a run's
+ * lifecycle, and one unit of work. They deliberately share no state name with
+ * an engine status -- copying a domain status into the runtime is how a
+ * workflow engine becomes a second source of truth.
+ */
+export const WORKFLOW_VERSION_STATUSES = ["draft", "published", "superseded"] as const;
+export type WorkflowVersionStatus = (typeof WORKFLOW_VERSION_STATUSES)[number];
+
+export const workflowVersionMachine = createStateMachine<WorkflowVersionStatus>(
+  "workflow_version",
+  {
+    draft: ["published"],
+    published: ["superseded"],
+    superseded: [],
+  },
+);
+
+export const WORKFLOW_STATUSES = [
+  "created", "active", "waiting", "completed", "failed", "cancelled",
+] as const;
+export type WorkflowStatus = (typeof WORKFLOW_STATUSES)[number];
+
+export const workflowInstanceMachine = createStateMachine<WorkflowStatus>("workflow_instance", {
+  created: ["active", "cancelled"],
+  active: ["waiting", "completed", "failed", "cancelled"],
+  waiting: ["active", "completed", "failed", "cancelled"],
+  completed: [],
+  failed: [],
+  cancelled: [],
+});
+
+export const WORK_ITEM_STATUSES = [
+  "pending", "ready", "claimed", "completed", "failed", "cancelled", "escalated",
+] as const;
+export type WorkItemStatus = (typeof WORK_ITEM_STATUSES)[number];
+
+export const workItemMachine = createStateMachine<WorkItemStatus>("work_item", {
+  pending: ["ready", "cancelled"],
+  ready: ["claimed", "completed", "failed", "cancelled", "escalated"],
+  claimed: ["completed", "failed", "ready", "cancelled", "escalated"],
+  // A failed item is replaced or retried; it is never silently completed.
+  failed: ["ready"],
+  /**
+   * Past its deadline and handed to an operator. Still actionable -- an
+   * escalation is a change of owner, not a failure, because the decision a
+   * person owes is still owed.
+   */
+  escalated: ["claimed", "ready", "completed", "failed", "cancelled"],
+  completed: [],
+  cancelled: [],
+});
+
 export const DB_STATE_MACHINES = [
   membershipMachine,
   personaGrantMachine,
   organizationMachine,
   onboardingMachine,
+  diagnosticMachine,
+  attemptMachine,
+  pathwayMachine,
+  pathwayStepMachine,
+  moduleProgressMachine,
+  projectMachine,
+  evidenceMachine,
+  reviewMachine,
+  credentialMachine,
+  opportunityMachine,
+  applicationMachine,
+  mentorshipMachine,
+  notificationMachine,
+  workflowVersionMachine,
+  workflowInstanceMachine,
+  workItemMachine,
 ] as const;
