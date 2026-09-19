@@ -3,37 +3,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fromPostgresError } from "@/domain/shared/errors";
 import type { NotificationRow } from "@/lib/db/types";
 
-export interface EnqueueNotificationInput {
-  profileId: string;
-  category: string;
-  title: string;
-  /** Idempotency key: the same domain event notifies exactly once. */
-  dedupeKey: string;
-  body?: string;
-  actionUrl?: string;
-  organizationId?: string | null;
-  payload?: Record<string, unknown>;
-}
-
-export async function enqueueNotification(
-  supabase: SupabaseClient,
-  input: EnqueueNotificationInput,
-): Promise<string | null> {
-  const { data, error } = await supabase.rpc("enqueue_notification", {
-    p_profile_id: input.profileId,
-    p_category: input.category,
-    p_title: input.title,
-    p_dedupe_key: input.dedupeKey,
-    p_body: input.body ?? null,
-    p_action_url: input.actionUrl ?? null,
-    p_organization_id: input.organizationId ?? null,
-    p_channel: "in_app",
-    p_payload: input.payload ?? {},
-  });
-  if (error) throw fromPostgresError(error, "We could not send that notification.");
-  return (data as string | null) ?? null;
-}
-
+/**
+ * Notifications are enqueued from inside the governed commands via `btg.notify`,
+ * which is not granted to any session role. The client-callable
+ * `public.enqueue_notification` wrapper that used to live here had no callers,
+ * and its grant let any session push a notification at itself; migration
+ * 20260918003800 revoked it. This module reads and marks read, nothing more.
+ */
 export async function listNotifications(
   supabase: SupabaseClient,
   profileId: string,
@@ -49,16 +25,18 @@ export async function listNotifications(
   return (data ?? []) as NotificationRow[];
 }
 
+/**
+ * Marks the caller's own notification read. The command marks the row and
+ * records the ledger entry in one transaction, so the application no longer
+ * needs — and no longer has — a general audit write path.
+ */
 export async function markNotificationRead(
   supabase: SupabaseClient,
-  profileId: string,
   notificationId: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("notifications")
-    .update({ status: "read", read_at: new Date().toISOString() })
-    .eq("id", notificationId)
-    .eq("profile_id", profileId);
+  const { error } = await supabase.rpc("mark_notification_read", {
+    p_notification_id: notificationId,
+  });
   if (error) throw fromPostgresError(error, "We could not update that notification.");
 }
 

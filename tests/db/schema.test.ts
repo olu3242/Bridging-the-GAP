@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asUser, createUser, expectRejection, sql } from "./helpers";
+import { asOwnerWithClaim, createUser, expectRejection, sql } from "./helpers";
 import { DB_STATE_MACHINES } from "@/domain/identity/lifecycle";
 
 const EXPECTED_TABLES = [
@@ -146,9 +146,13 @@ describe("constraints and immutability", () => {
     expect(updated.activated_at).not.toBeNull();
   });
 
+  /* record_audit_event is no longer callable from a session (migration
+     20260918003800), so these drive it as the owner — the same context a
+     SECURITY DEFINER command runs in. The properties asserted, append-only
+     storage and the action-format constraint, are unchanged. */
   it("keeps the audit ledger append-only", async () => {
     const user = await createUser("auditor");
-    const [event] = await asUser(user.id, async (client) => {
+    const [event] = await asOwnerWithClaim(user.id, async (client) => {
       const result = await client.query(
         "select public.record_audit_event('identity.session.signed_in', 'session') as id",
       );
@@ -169,7 +173,7 @@ describe("constraints and immutability", () => {
   it("rejects a malformed audit action", async () => {
     const user = await createUser("malformed");
     const rejection = await expectRejection(
-      asUser(user.id, (client) =>
+      asOwnerWithClaim(user.id, (client) =>
         client.query("select public.record_audit_event('NotAnAction', 'session')"),
       ),
     );

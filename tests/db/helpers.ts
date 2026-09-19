@@ -41,6 +41,31 @@ export async function asUser<T>(
   }
 }
 
+/**
+ * Runs a block as the schema owner with a session claim set, which is the
+ * context a SECURITY DEFINER command executes in: it holds EXECUTE on the
+ * internal writers, and `auth.uid()` still resolves. Use this to exercise a
+ * function that is deliberately not callable by `authenticated`.
+ */
+export async function asOwnerWithClaim<T>(
+  userId: string,
+  fn: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query("select set_config('request.jwt.claim.sub', $1, true)", [userId]);
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 /** Runs a block with no session at all (the `anon` case). */
 export async function asAnon<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();

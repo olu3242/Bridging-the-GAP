@@ -108,6 +108,167 @@ describe("internal helpers are not reachable from a session", () => {
   });
 });
 
+describe("the ledger is not writable from a session", () => {
+  it("refuses a learner writing an audit event directly", async () => {
+    // The ledger is the platform's evidence of what happened, and
+    // outcome_timeline_view reads it. Before this was closed, a learner could
+    // write themselves credential_issued and opportunity_accepted with zero
+    // rows in the canonical tables.
+    const learner = await createUser("ledger-forger");
+    const rejection = await expectRejection(
+      asUser(learner.id, (client) =>
+        client.query(
+          `select public.record_audit_event(
+             'credential.credential.issued', 'credential', gen_random_uuid()::text,
+             null, null, null, jsonb_build_object('forged', true),
+             'critical'::public.btg_audit_severity, null, 'credentials')`,
+        ),
+      ),
+    );
+    expect(rejection.code).toBe("42501");
+  });
+
+  it("refuses a learner enqueueing a notification directly", async () => {
+    const learner = await createUser("notify-forger");
+    const rejection = await expectRejection(
+      asUser(learner.id, (client) =>
+        client.query(
+          "select public.enqueue_notification($1, 'spam', 'Spam', 'spam:2')",
+          [learner.id],
+        ),
+      ),
+    );
+    expect(rejection.code).toBe("42501");
+  });
+
+  it("marks a notification read and records it, through the command only", async () => {
+    const learner = await createUser("notif-reader");
+    await walkBaseline(learner.id, { correctly: false });
+    const [notification] = await sql<{ id: string }>(
+      "select id from public.notifications where profile_id = $1 order by created_at limit 1",
+      [learner.id],
+    );
+    expect(notification).toBeDefined();
+
+    await asUser(learner.id, (client) =>
+      client.query("select public.mark_notification_read($1)", [notification.id]),
+    );
+    const [after] = await sql<{ status: string }>(
+      "select status from public.notifications where id = $1",
+      [notification.id],
+    );
+    expect(after.status).toBe("read");
+
+    const ledger = await sql<{ n: string }>(
+      `select count(*)::text as n from public.audit_events
+       where actor_profile_id = $1 and action = 'notification.notification.read'`,
+      [learner.id],
+    );
+    expect(Number(ledger[0].n)).toBe(1);
+
+    // Idempotent: a second call writes no second ledger entry.
+    await asUser(learner.id, (client) =>
+      client.query("select public.mark_notification_read($1)", [notification.id]),
+    );
+    const again = await sql<{ n: string }>(
+      `select count(*)::text as n from public.audit_events
+       where actor_profile_id = $1 and action = 'notification.notification.read'`,
+      [learner.id],
+    );
+    expect(Number(again[0].n)).toBe(1);
+  });
+
+  it("refuses marking another learner's notification read", async () => {
+    const owner = await createUser("notif-owner");
+    await walkBaseline(owner.id, { correctly: false });
+    const [notification] = await sql<{ id: string }>(
+      "select id from public.notifications where profile_id = $1 limit 1",
+      [owner.id],
+    );
+    const stranger = await createUser("notif-stranger");
+    const rejection = await expectRejection(
+      asUser(stranger.id, (client) =>
+        client.query("select public.mark_notification_read($1)", [notification.id]),
+      ),
+    );
+    expect(rejection.code).toBe("P0002");
+  });
+
+  it("still records the ledger through the governed commands", async () => {
+    // The commands are SECURITY DEFINER and execute as the owner, so closing
+    // the caller-facing grant must not have closed the real write path.
+    const learner = await createUser("ledger-governed");
+    await walkBaseline(learner.id, { correctly: false });
+    const rows = await sql<{ action: string }>(
+      "select action from public.audit_events where actor_profile_id = $1 and action = 'diagnostic.attempt.scored'",
+      [learner.id],
+    );
+    expect(rows).toHaveLength(1);
+  });
+
+  it("leaves no timeline entry a learner could have forged", async () => {
+    const learner = await createUser("timeline-clean");
+    await walkBaseline(learner.id, { correctly: false });
+    const rows = await asUser(learner.id, async (client) => {
+      const r = await client.query(
+        "select outcome from public.outcome_timeline_view where profile_id = $1",
+        [learner.id],
+      );
+      return r.rows as Array<{ outcome: string }>;
+    });
+    const reached = rows.map((r) => r.outcome);
+    // Nothing downstream of evidence can appear for a learner who only sat a
+    // diagnostic.
+    for (const forgeable of ["credential_issued", "skill_verified", "opportunity_accepted"]) {
+      expect(reached).not.toContain(forgeable);
+    }
+  });
+});
+
+describe("every view resolves RLS as the caller", () => {
+  it("declares security_invoker on all of them", async () => {
+    // A view left on definer semantics would read past the caller's RLS and
+    // leak other learners' rows through an innocuous-looking read model.
+    const rows = await sql<{ relname: string; invoker: string }>(
+      `select c.relname,
+              coalesce((select option_value from pg_options_to_table(c.reloptions)
+                        where option_name = 'security_invoker'), 'NOT SET') as invoker
+       from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind = 'v'
+       order by c.relname`,
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.invoker, `${row.relname} is not security_invoker`).toBe("true");
+    }
+  });
+
+  it("gives no session role CREATE on a schema", async () => {
+    // Without this, a mutable search_path on any function becomes plantable.
+    const rows = await sql<{ role: string; schema: string; can: boolean }>(
+      `select r.role, s.schema, has_schema_privilege(r.role, s.schema, 'CREATE') as can
+       from (values ('anon'),('authenticated')) r(role),
+            (values ('public'),('btg')) s(schema)`,
+    );
+    for (const row of rows) {
+      expect(row.can, `${row.role} may CREATE in ${row.schema}`).toBe(false);
+    }
+  });
+
+  it("pins search_path on every function the linter can reach", async () => {
+    const rows = await sql<{ fn: string }>(
+      `select n.nspname || '.' || p.proname as fn
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname in ('public','btg')
+         and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+         and (p.proconfig is null or not exists (
+               select 1 from unnest(p.proconfig) c where c like 'search_path=%'))
+       order by 1`,
+    );
+    expect(rows.map((r) => r.fn)).toEqual([]);
+  });
+});
+
 describe("the table grant matrix is the intended one", () => {
   it("gives anon no access to anything in public", async () => {
     const rows = await sql<{ n: string }>(

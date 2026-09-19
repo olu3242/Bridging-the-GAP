@@ -45,31 +45,44 @@ overlooked.
 | Gate | Status | Evidence |
 |---|---|---|
 | G1 build | PASS | `npm run build`, `/` prerendered static |
-| G2 CI | PASS | both `verify` runs green on head `89033c8` |
-| G3 migrations | PASS | 37/37 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster |
-| G4 live auth | BLOCKED | Auth is provisioned and the `on_auth_user_created` trigger is installed live, but no real sign-up has been exercised |
-| G5 live RLS | PASS (schema) / BLOCKED (exercised) | Policies and grants are byte-identical live; 203 database tests exercise them as the `authenticated` role with `auth.uid()` from the request claim. Not yet exercised through PostgREST with a real JWT |
-| G6 authenticated E2E | BLOCKED | 7 browser specs written, still skipped: the app is not yet wired to the live project |
-| G7 object storage | BLOCKED | certified by contract against `file_objects`; no object uploaded or retrieved |
-| G8 core learner journey | PASS (local) / BLOCKED (live) | `tests/db/journey.test.ts`, sign-up to accepted offer through real commands |
-| G9 reviewer workflow | PASS (local) / BLOCKED (live) | 28 verification tests; rubric-bound decision, self-review refused |
-| G10 employer workflow | PASS (local) / BLOCKED (live) | 24 outcome/pipeline tests; disclosure-scoped applicant visibility |
-| G11 responsive UI | PASS (landing) / BLOCKED (app) | landing certified at 1440/1280/834/390; the authenticated surface has never been rendered against a live session |
-| G12 audit trail | PASS | every governed transition carries actor, object, before, after, severity, workflow, `clock_timestamp()` ordering |
-| G13 error recovery | PASS (local) | typed `ActionState` per failure; unhappy paths covered in the domain and database suites |
-| G14 no critical security defect | PASS, after repair | defect 15 (any learner could complete any learner's pathway step via `btg.complete_pathway_step`) was found during live certification, reproduced with a probe, fixed, and is now guarded by 10 grant-surface tests. It was present locally too |
+| G2 CI | PASS | both `verify` runs green on the current head |
+| G3 migrations | PASS | 38/38 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster, re-proved after each fix |
+| G4 live auth | BLOCKED_EXTERNAL | Auth provisioned and the `on_auth_user_created` trigger installed live, but this session's egress policy denies `epmtfqqemxumsjbthsmq.supabase.co` (403 on CONNECT), so no sign-up can be exercised from here |
+| G5 live RLS / PostgREST | BLOCKED_EXTERNAL | Policies, grants and function ACLs byte-identical live; every denial re-proved on the live database as the `authenticated` role with a session claim. The PostgREST/JWT path itself is unreachable from this session |
+| G6 authenticated E2E | BLOCKED_EXTERNAL | 7 browser specs written and still skipped; the browser cannot reach the project host |
+| G7 storage | BLOCKED_EXTERNAL | no object uploaded or retrieved; Storage is served from the blocked host |
+| G8 core learner journey | PASS (local) / BLOCKED_EXTERNAL (live) | `tests/db/journey.test.ts`, sign-up to accepted offer through real commands |
+| G9 reviewer workflow | PASS (local) / BLOCKED_EXTERNAL (live) | 28 verification tests; rubric-bound decision, self-review refused |
+| G10 employer workflow | PASS (local) / BLOCKED_EXTERNAL (live) | 24 outcome/pipeline tests; disclosure-scoped applicant visibility |
+| G11 responsive app UI | PASS (landing) / BLOCKED_EXTERNAL (app) | landing certified at 1440/1280/834/390; the authenticated surface has still never been rendered against a live session |
+| G12 audit | PASS | every governed transition carries actor, object, before, after, severity, workflow, `clock_timestamp()` ordering — and the ledger is now writable only from inside a governed command |
+| G13 recovery | PASS (local) | typed `ActionState` per failure; unhappy paths covered in the domain and database suites |
+| G14 no critical security defect | PASS, after two repairs | defect 15 (any learner could complete any learner's pathway step) and defect 17 (any learner could forge their own outcome history in the ledger). Both reproduced with probes, fixed, and guarded by 19 grant-surface tests |
 | G15 no data-loss defect | PASS | append-only ledger and transcript; supersession never rewrites a prior claim |
 
-**Overall: `NOT_PILOT_READY`.** The database tier is now live-certified and
-provably identical to the certified local schema, and the one critical defect
-found is fixed. What remains is exercising the live stack through the
-application: real Auth sign-up, RLS through PostgREST, the 7 browser specs,
-object storage, and the responsive pass over the authenticated surface. None of
-those are blocked by anything outside the repository any more — they are the
-next batch of work, not an external blocker.
+**Overall: `NOT_PILOT_READY`.**
 
-The one genuine external blocker left is AI-provider credentials: no
-`ANTHROPIC_API_KEY` is present, so live tutor-provider certification stays
-`READY_WITH_EXTERNAL_BLOCKER`. The deterministic tutor path — screening,
-refusal, schema validation, overclaim guard, provider-unavailable fallback — is
-certified without it.
+Every gate that can be closed without reaching the project host over the
+network is closed, and the database tier is certified live and provably
+identical to the certified local schema. But G4, G6 and G7 are pilot-critical
+and have never been exercised: nobody has loaded an authenticated page against
+live infrastructure, and no file has been uploaded. Calling that pilot-ready
+would be a claim the evidence does not support, so it is not made.
+
+## External blockers
+
+1. **Egress policy (the one that matters).** This session's proxy denies
+   `epmtfqqemxumsjbthsmq.supabase.co:443` with a 403 on CONNECT, recorded as a
+   policy denial. The proxy documentation is explicit that this must be
+   reported rather than routed around. Everything Auth, PostgREST, Storage and
+   browser-based therefore cannot run from here — not because of a repository
+   defect, but because the host is outside this environment's allow-list. The
+   work is otherwise ready: `.env.local` is configured against the live project
+   and gitignored, and the 7 browser specs need only a reachable host.
+2. **No `ANTHROPIC_API_KEY`.** Live tutor-provider certification stays
+   `BLOCKED_EXTERNAL`. The deterministic tutor safety boundary — screening,
+   refusal, schema validation, overclaim guard, provider-unavailable fallback —
+   is green without it.
+3. **Supabase free-tier project limit** (2 active projects, both occupied) —
+   already worked around by using the empty project rather than touching the
+   unrelated live one.

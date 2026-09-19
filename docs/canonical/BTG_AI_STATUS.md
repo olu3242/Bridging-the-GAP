@@ -123,17 +123,17 @@ Scope:           E5 pathway, E6 learning, E7 AI tutor, E8 projects,
                  E15 application pipeline, E17 outcomes/analytics
 Status:          INTEGRATED
 Certification:   BTG_AI_E2E_INTEGRATED (see Batch 7 for live schema certification)
-Schema:          +21 migrations, 20260918001600 → 20260918003600
-                 (36 migrations total, 20260918000100 → 20260918003600)
+Schema:          +23 migrations, 20260918001600 → 20260918003800
+                 (38 migrations total, 20260918000100 → 20260918003800)
 Implementation:  /pathway, /pathway/[stepId], /tutor, /projects,
                  /projects/[projectId], /review, /review/[reviewId],
                  /portfolio, /opportunities, /mentorship, /outcomes;
                  dashboard outcome funnel replacing the stale "what unlocks
                  next" panel
-Tests:           266/266 vitest (73 domain, 193 database/RLS),
+Tests:           285/285 vitest (73 domain, 212 database/RLS),
                  14/14 Playwright (7 skipped: need Supabase)
 Failures:        none
-Defects repaired: 16 across the batches (see below)
+Defects repaired: 17 across the batches (see below)
 External blockers: Supabase project still unprovisioned. The browser journey
                  specs and the PostgREST request path remain unrun; nothing is
                  LIVE_CERTIFIED
@@ -184,7 +184,7 @@ Scope:           Connect a live Supabase project; apply and prove the full
                  forward chain; certify grants, RLS and seed content live
 Status:          INTEGRATED (live schema certified; live browser journey not yet run)
 Project:         epmtfqqemxumsjbthsmq (us-east-2, Postgres 17)
-Schema:          37/37 migrations applied live, 20260918000100 -> 20260918003700,
+Schema:          38/38 migrations applied live, 20260918000100 -> 20260918003800,
                  recorded in the project's own migration ledger in order
 Parity:          Proved by fingerprint across ten sections -- columns,
                  constraints, indexes, policies, function bodies, function
@@ -221,6 +221,49 @@ Notes on applying the chain to a hosted project:
 **The critical one was confirmed present on the local cluster too, not only
 live.** It was a repository defect that live certification surfaced, which is
 the point of doing it.
+
+### Batch 8 — live security re-certification
+
+```
+Scope:           One explicit security pass over the live project, on the
+                 premise that the 003700 ACL defect might not be the only one
+Status:          Complete. It was not the only one
+Schema:          38 migrations, 20260918000100 -> 20260918003800
+Parity:          Ten-section fingerprint re-proved identical after the fix
+Supabase linter: function_search_path_mutable cleared (10 -> 0)
+Tests:           285/285 vitest (73 domain, 212 database/RLS)
+```
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 17 | **HIGH.** `public.record_audit_event` was granted to `authenticated`, and the action string is a free parameter. Any learner could write arbitrary lifecycle actions into the audit ledger at any severity — including the actions `outcome_timeline_view` maps — so a learner could show themselves a history that never happened. Proven: a learner with zero credentials produced `joined(1), credential_issued(12), opportunity_accepted(18)` with 0 rows in `public.credentials`. `public.enqueue_notification` was open the same way | Both were granted on the assumption the application would write events itself. It never did: the two TypeScript wrappers had one caller between them | Neither is callable from a session. The governed commands are SECURITY DEFINER and execute as the owner, so they never needed the grant. The one real client-side audit write — marking a notification read — became its own governed command, `public.mark_notification_read`, which marks the row and records the entry in one transaction and can only touch the caller's own notification |
+
+`learner_outcome_view` was never affected: it counts canonical tables, not the
+ledger. The timeline was, and so was the integrity of the ledger itself.
+
+Five existing tests drove `record_audit_event` / `enqueue_notification`
+directly as `authenticated`. Their expectations were obsolete by intent, so
+each was re-routed to assert the same property through the correct path — actor
+stamping through a governed command, notification idempotency through
+`btg.notify`, ledger immutability and the action-format constraint as the
+owner, which is the context a definer command runs in. None was weakened.
+
+### Also certified in this pass
+
+- Every one of the 7 views carries `security_invoker = true`. A view left on
+  definer semantics would read past the caller's RLS.
+- Neither `anon` nor `authenticated` holds `CREATE` on `public` or `btg`, so a
+  mutable `search_path` was never plantable. Pinned on all ten flagged
+  functions regardless.
+- `search_path` is now pinned on every non-extension function in both schemas,
+  asserted by test rather than by the linter alone.
+- The 30 remaining `SECURITY DEFINER` functions callable by `authenticated` are
+  exactly the governed command API. That is the intended write surface; each
+  performs its own actor and authorization checks.
+- Supabase's `pg_graphql` lint reports 57 objects discoverable to signed-in
+  users. Accepted: RLS governs rows, and table-name discoverability is not a
+  data leak. Disabling the GraphQL endpoint in the project's API settings would
+  reduce the surface further; that is account configuration, not schema.
 
 ### E17 design decisions worth knowing
 
@@ -266,7 +309,7 @@ Route classification: `BTG_AI_ROUTES.md`.
 ```bash
 npm install
 npm run db:local:up     # Postgres 16 cluster + all migrations
-npm run test:all        # 276 tests: domain + database/RLS
+npm run test:all        # 285 tests: domain + database/RLS
 npm run build
 BTG_E2E_CHROMIUM=/opt/pw-browsers/chromium npx playwright test
 ```
