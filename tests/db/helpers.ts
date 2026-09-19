@@ -93,6 +93,27 @@ export async function asAnon<T>(fn: (client: PoolClient) => Promise<T>): Promise
   }
 }
 
+/**
+ * Runs a block as `service_role` — the worker identity. The W14 execution and
+ * workflow runtimes are granted to this role and to no session role, so this
+ * is the only context in which execution state may be mutated.
+ */
+export async function asServiceRole<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query("set local role service_role");
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export interface SeededUser {
   id: string;
   email: string;

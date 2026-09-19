@@ -46,7 +46,7 @@ overlooked.
 |---|---|---|
 | G1 build | PASS | `npm run build`, `/` prerendered static |
 | G2 CI | PASS | both `verify` runs green on the current head |
-| G3 migrations | PASS | 39/39 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster, re-proved after each fix |
+| G3 migrations | PASS | 40/40 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster, re-proved after each fix, reproducible via `scripts/schema-fingerprint.sql` |
 | G4 live auth | BLOCKED_EXTERNAL | Auth provisioned and the `on_auth_user_created` trigger installed live, but this session's egress policy denies `epmtfqqemxumsjbthsmq.supabase.co` (403 on CONNECT), so no sign-up can be exercised from here |
 | G5 live RLS / PostgREST | BLOCKED_EXTERNAL | Policies, grants and function ACLs byte-identical live; every denial re-proved on the live database as the `authenticated` role with a session claim. The PostgREST/JWT path itself is unreachable from this session |
 | G6 authenticated E2E | BLOCKED_EXTERNAL | 7 browser specs written and still skipped; the browser cannot reach the project host |

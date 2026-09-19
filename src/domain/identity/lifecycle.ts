@@ -217,6 +217,54 @@ export const notificationMachine = createStateMachine<NotificationStatus>("notif
   failed: ["pending"], // manual retry
 });
 
+/**
+ * W14-C execution state. These three machines govern the workflow runtime, not
+ * any domain fact: a definition version's publication lifecycle, a run's
+ * lifecycle, and one unit of work. They deliberately share no state name with
+ * an engine status -- copying a domain status into the runtime is how a
+ * workflow engine becomes a second source of truth.
+ */
+export const WORKFLOW_VERSION_STATUSES = ["draft", "published", "superseded"] as const;
+export type WorkflowVersionStatus = (typeof WORKFLOW_VERSION_STATUSES)[number];
+
+export const workflowVersionMachine = createStateMachine<WorkflowVersionStatus>(
+  "workflow_version",
+  {
+    draft: ["published"],
+    published: ["superseded"],
+    superseded: [],
+  },
+);
+
+export const WORKFLOW_STATUSES = [
+  "created", "active", "waiting", "completed", "failed", "cancelled",
+] as const;
+export type WorkflowStatus = (typeof WORKFLOW_STATUSES)[number];
+
+export const workflowInstanceMachine = createStateMachine<WorkflowStatus>("workflow_instance", {
+  created: ["active", "cancelled"],
+  active: ["waiting", "completed", "failed", "cancelled"],
+  waiting: ["active", "completed", "failed", "cancelled"],
+  completed: [],
+  failed: [],
+  cancelled: [],
+});
+
+export const WORK_ITEM_STATUSES = [
+  "pending", "ready", "claimed", "completed", "failed", "cancelled",
+] as const;
+export type WorkItemStatus = (typeof WORK_ITEM_STATUSES)[number];
+
+export const workItemMachine = createStateMachine<WorkItemStatus>("work_item", {
+  pending: ["ready", "cancelled"],
+  ready: ["claimed", "completed", "failed", "cancelled"],
+  claimed: ["completed", "failed", "ready", "cancelled"],
+  // A failed item is replaced or retried; it is never silently completed.
+  failed: ["ready"],
+  completed: [],
+  cancelled: [],
+});
+
 export const DB_STATE_MACHINES = [
   membershipMachine,
   personaGrantMachine,
@@ -235,4 +283,7 @@ export const DB_STATE_MACHINES = [
   applicationMachine,
   mentorshipMachine,
   notificationMachine,
+  workflowVersionMachine,
+  workflowInstanceMachine,
+  workItemMachine,
 ] as const;

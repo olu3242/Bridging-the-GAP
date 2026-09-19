@@ -389,12 +389,102 @@ deleted (`remaining_probe_rows: 0`). This certifies the queue primitives over
 the SQL boundary — it does **not** certify the substrate, which needs PostgREST
 and Auth and remains W14-A.
 
+## W14-C — Workflow core (Workflow OS convergence, batch C)
+
+```
+Wave:            W14 — Workflow OS Convergence, batch C (workflow core)
+Status:          INTEGRATED
+Certification:   BTG_WORKFLOW_OS_BLOCKED (on W14-A, externally)
+Schema:          +1 forward migration (20260918004000_workflow_core), 40 total
+Implementation:  workflow_definitions / _definition_versions / _definition_steps /
+                 workflow_instances / workflow_work_items (public, RLS);
+                 btg.workflow_taxonomy + btg.workflow_checks (allowlists);
+                 start_workflow, advance_instance, complete_work_item,
+                 fail_work_item, cancel_workflow, bind_work_item_subject,
+                 publish_definition_version, assert_step_satisfied,
+                 record_workflow_event; 3 lifecycle machines registered
+Tests:           342/342 vitest across 21 files (+41 workflow)
+Failures:        none
+Defects repaired: 1 (in my own fingerprint method — see below)
+External blockers: unchanged; W14-A stays BLOCKED_EXTERNAL
+Next execution:  W14-D — private orchestration stream + generic dispatcher
+```
+
+### The one property that matters
+
+`btg.complete_work_item` refuses to mark a step completed unless the **engines
+already show** the state that step requires. The step names a check, the check
+is foreign-keyed to an allowlist, and the allowlist's implementation is a
+hardcoded `CASE` that reads the engine's own table — no dynamic SQL, so a step
+can never name a function to execute.
+
+That makes the workflow a projection of the domain rather than a second
+authority over it, and it is enforced rather than documented: completing
+`attempt_scored` while the attempt is still `in_progress` is refused, binding
+another learner's attempt is refused (the check matches `profile_id` too), and
+a check pointed at the wrong kind of entity is refused before it runs.
+
+### Design decisions worth knowing
+
+- **A published definition version is immutable.** One trigger permits exactly
+  one change — supersession — and refuses everything else including deletion;
+  the step catalog freezes with the version; versions are monotonic (`max + 1`,
+  a chosen number is rejected); at most one is published per definition. An
+  instance pins its version and a trigger refuses to change the pin, so a
+  definition change can never retroactively alter an in-flight run.
+- **The step catalog is a table, not a jsonb spec.** A spec would have to be
+  interpreted at run time, and interpreting a payload is how a dispatcher ends
+  up executing what a payload named. `handler` is an enum, `completion_check`
+  is foreign-keyed, and `start_workflow` refuses any handler no dispatcher
+  resolves yet — so a version cannot strand an instance.
+- **16 of 17 definitions are reserved, not built.** Only `baseline_diagnostic`
+  is enabled with a published v1. A definition with no published version cannot
+  be instantiated, which is the honest state for a batch that has not landed.
+  `BTG_LEARNER_TO_OPPORTUNITY` is reserved the same way.
+- **Work items reference domain entities, never copy them.**
+  `(subject_type, subject_id)` plus an 8 KiB bound on `input`, both enforced; a
+  test asserts the payload stays empty across the diagnostic walk, and another
+  asserts no workflow table carries a domain enum.
+- **The runtime got its own evidence writer.** `record_audit_event` requires an
+  authenticated actor and 003800 closed it to sessions; a worker has no
+  session. `btg.record_workflow_event` writes the same shape with a null actor
+  and `metadata.actor = 'workflow_runtime'`, so a runtime action is never
+  attributed to a learner who did not take it. Service-role only; a session
+  calling it gets 42501.
+- **No second queue.** W14-C adds no queue; the dispatcher in W14-D will claim
+  from `btg.work_queue`.
+
+### Defect found and repaired
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 19 | The live/local schema fingerprint could report a false mismatch — the transition registry hashed differently on the two clusters while containing byte-identical rows | The fingerprint aggregated with `string_agg(... order by x)`, which is **collation-dependent**. The local cluster orders text under `C`, the hosted project under a UTF-8 locale, so identical row sets concatenate in different orders and hash differently. Nine of ten sections happened to be collation-stable, which is why earlier passes agreed by luck | Every aggregate now sorts `collate "C"`, and the query became `scripts/schema-fingerprint.sql` instead of being retyped each time. Isolated by hashing per machine on both sides first, which showed all 20 machines identical — the schema was never wrong, the check was |
+
+Worth stating plainly: this defect was in the **verification**, not the system.
+A parity check that can disagree with itself is worse than no parity check,
+because it spends the next hour hunting a schema difference that does not
+exist.
+
+### Live state
+
+40/40 migrations applied to `epmtfqqemxumsjbthsmq` and recorded in its ledger.
+All ten fingerprint sections identical to the local certified cluster after the
+collation fix. Live catalog verified directly: 17 definitions, 1 enabled, 1
+published version, 3 steps reading
+`attempt_started/diagnostic_attempt_started → attempt_scored/diagnostic_attempt_scored
+→ baseline_recorded/learner_baseline_recorded`, 16 taxonomy labels, 3 checks,
+and **0** of the 9 runtime functions reachable by `anon` or `authenticated`.
+
+The positive walk is certified locally only. Running it live would require an
+`auth.users` row, and the W14 contract forbids fabricating one to get past the
+W14-A gate — so it was not done, rather than done and reported as live.
+
 ## How to reproduce the certification
 
 ```bash
 npm install
 npm run db:local:up     # Postgres 16 cluster + all migrations
-npm run test:all        # 301 tests: domain + database/RLS
+npm run test:all        # 342 tests: domain + database/RLS
 npm run build
 BTG_E2E_CHROMIUM=/opt/pw-browsers/chromium npx playwright test
 ```

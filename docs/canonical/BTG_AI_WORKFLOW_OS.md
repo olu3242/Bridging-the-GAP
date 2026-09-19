@@ -114,35 +114,52 @@ defects in this codebase were over-broad grants on functions intended to be
 internal, the runtime is service-role-only by construction, and tests assert it
 for every function by name.
 
-## W14-C / W14-D — specified, deliberately NOT migrated
+## W14-C — the workflow core (BUILT, migration 20260918004000)
 
-The workflow core and the private orchestration stream are designed below but
-no migration exists, for one reason: **migrations here are forward-only, and
-there is no consumer yet.** Shipping a guessed `workflow_instances` shape
-before the substrate is live and before the coordinator exists means migrating
-a table rather than editing a document. The design is cheap to change now and
-expensive to change later, so it stays a design until W14-A opens.
+Five tables in `public` under RLS, two allowlist tables in `btg`, and nine
+service-role functions. The earlier decision to leave this as a design was
+reversed for a good reason: the batch gate was "W14-B green", not "W14-A open",
+and the shape stopped being a guess once there was a concrete workload to build
+it against.
 
-### `workflow_definitions` / `workflow_definition_versions`
+### `workflow_definitions` / `workflow_definition_versions` / `workflow_definition_steps`
 
-Seeded from the 16 workflow labels the ledger **already emits**:
-`signup, onboarding, organization_provisioning, baseline_diagnostic,
-pathway_generation, pathway, learning, projects, evidence, verification,
-credentials, opportunities, matching, mentorship, tutor, notifications`.
+Seeded from the 16 workflow labels the ledger **already emits**, plus the
+reserved coordinator `BTG_LEARNER_TO_OPPORTUNITY`. The labels live in
+`btg.workflow_taxonomy` and are foreign-keyed, so a definition cannot file
+evidence under a label the ledger does not recognise.
 
-Rules: a published version is immutable; versions are ordered; a definition is
-org-scoped where the workflow is org-specific and platform-scoped otherwise.
+- A **published version is immutable.** A trigger permits exactly one change to
+  it — supersession — and refuses everything else, including deletion. The step
+  catalog freezes with its version.
+- **Versions are monotonic.** A trigger assigns `max + 1` and rejects a chosen
+  number, so two people cannot both create "version 3".
+- **At most one published version** per definition, by partial unique index.
+- Publishing refuses a version with no steps (it would complete on creation) or
+  with a gap in its ordinals (the next step would be ambiguous).
+- Only `baseline_diagnostic` is enabled and versioned. The other 15 plus the
+  coordinator are *reserved*: a definition with no published version cannot be
+  instantiated, which is the right default for a batch that has not landed.
+
+The step catalog is a **table**, not a jsonb spec. That is deliberate: a jsonb
+spec would have to be interpreted at run time, and interpreting a payload is
+how a dispatcher ends up executing something a payload named. A step names a
+`handler` and a `completion_check`, both enum or foreign-keyed, and
+`btg.start_workflow` refuses any handler no dispatcher resolves yet.
 
 ### `workflow_instances`
 
-Columns: durable `id`, `definition_version_id`, `organization_id`,
-`subject_profile_id`, `status`, `started_at`, `settled_at`.
+Durable `id`, `definition_version_id`, `status`, `organization_id`,
+`subject_profile_id`, `idempotency_key`, `started_at`, `settled_at`, `failure`.
 
-- **Pins its definition version.** A definition change never retroactively
-  alters an in-flight instance; migrating an instance between versions is an
-  explicit, recorded operation. This is the hardest problem in workflow engines
-  and the rule that prevents it becoming one.
-- **Never copies engine status.** No `pathway_step_status` column, ever.
+- **Pins its definition version.** A trigger refuses to change
+  `definition_version_id` at all, so a definition change can never retroactively
+  alter an in-flight run and no instance silently migrates. Moving one between
+  versions would be an explicit recorded operation; it is not implemented, so it
+  is refused rather than half-available.
+- **Never copies engine status.** A test asserts no workflow table carries a
+  domain enum: the only `btg_*` types present are the seven runtime enums and
+  `btg_persona`.
 - Replaces `correlation_id` as the correlation key. The existing
   `correlation_id` is generated per HTTP request (`crypto.randomUUID()` in
   `requireContext`) and used by 3 of ~30 services — it looks like this
@@ -150,16 +167,79 @@ Columns: durable `id`, `definition_version_id`, `organization_id`,
 
 ### `workflow_work_items`
 
-Types: `human`, `system`, `ai`, `approval`, `external`, `wait`. Fields: owner
-(persona, AI worker or system), status, priority, deadline, attempts, payload,
-result, failure.
+Types `human`, `system`, `ai`, `approval`, `external`, `wait`; owner as system,
+AI, persona or profile; priority, `available_at`, `deadline_at` derived from the
+step's SLA, attempts, bounded `input`/`result` (8 KiB each, enforced), failure,
+`idempotency_key`, lease columns, and `(subject_type, subject_id)`.
 
-### Private orchestration stream
+That last pair is the rule about not duplicating domain data, made structural:
+the work item **references** the entity its step concerns and stores nothing
+about it. A test asserts the `input` stays empty on the diagnostic walk.
+
+### The projection guarantee
+
+This is the part worth reading. `btg.complete_work_item` will not mark an item
+completed unless the domain **already shows** the state its step requires:
+
+```
+step.completion_check -> btg.assert_step_satisfied(check, subject_type, subject_id, subject_profile)
+                      -> a hardcoded CASE over allowlisted checks
+                      -> reads the engine's own table
+```
+
+So the workflow cannot assert that a learner did something the engines do not
+record. Proved three ways in the suite: completing `attempt_scored` while the
+attempt is still `in_progress` is refused; binding another learner's attempt is
+refused, because the check matches on `profile_id` too; and a check pointed at
+the wrong kind of entity is refused before it runs.
+
+`btg.assert_step_satisfied` contains no dynamic SQL. A step names a label, the
+label is foreign-keyed to `btg.workflow_checks`, and adding one is a migration.
+That is the point.
+
+### W14-C proof
+
+`tests/db/workflow.test.ts`, 41 tests. The positive walk is the contract's
+chain, end to end, on real engine state:
+
+```
+definition -> published v1 -> instance (3 work items, first ready)
+  -> learner calls start_diagnostic_attempt            (governed command)
+  -> bind attempt, complete item 1                     -> item 2 ready
+  -> learner answers + submit_diagnostic_attempt       (engine grades, estimates,
+                                                        writes the baseline)
+  -> complete item 2 (attempt is 'scored')             -> item 3 ready
+  -> complete item 3 (baseline in learner_competencies)-> instance completed
+  -> 5 ledger events, every one attributed to the runtime, not the learner
+```
+
+The diagnostic engine is authoritative throughout: the workflow starts no
+attempt, answers no question, grades nothing and writes no competency. It waits
+and records.
+
+### Evidence, and why the runtime needed its own writer
+
+`public.record_audit_event` requires an authenticated actor — correctly, since
+it is the session-facing path, and 003800 closed it to sessions entirely. A
+worker has no session, so the runtime writes through
+`btg.record_workflow_event`: same shape, `actor_profile_id` null, and
+`metadata.actor = 'workflow_runtime'`. A runtime action is therefore never
+attributed to a learner who did not take it, and the function is service-role
+only — a test proves a session calling it gets 42501.
+
+## W14-D — the private orchestration stream (specified, next)
 
 `btg.orchestration_events`: `event_id`, `workflow_instance_id`,
-`workflow_step_id`, `event_type`, `idempotency_key`, `payload`, `attempt`,
-`occurred_at`. Writable by `service_role` only; **no session role may publish
-an executable event.** Audit events stay evidence.
+`work_item_id`, `step_key`, `event_type`, `idempotency_key`, `source`,
+bounded `payload`, `attempt`, `occurred_at`. Writable by `service_role` only;
+**no session role may publish an executable event**, enforced by grant and not
+by RLS alone. Audit events stay evidence.
+
+The dispatcher claims from `btg.work_queue` (W14-B, no second queue), loads the
+instance's pinned version, validates lifecycle, resolves the step's allowlisted
+handler, executes, records, advances, and enqueues the continuation in the same
+transaction as the state change — never commit-then-enqueue, which leaves a
+window where work is lost.
 
 ## AI as a worker, never an authority
 
@@ -196,14 +276,14 @@ admin-tunable turns the differentiator into a support ticket.
 |---|---|
 | 1. live substrate certified | **BLOCKED_EXTERNAL** — egress policy denies the project host |
 | 2. notifications execute through the worker | **DONE** (locally certified; live schema applied) |
-| 3. durable workflow instances | specified, not built |
-| 4. versioned definitions | specified, not built |
-| 5. work items persist | specified, not built |
-| 6. private idempotent orchestration events | specified, not built |
-| 7. human queues | not built |
-| 8. workflow projection inspectable | `btg.queue_health` only |
+| 3. durable workflow instances | **DONE** (W14-C) |
+| 4. versioned definitions | **DONE** (W14-C: immutable, monotonic, pinned) |
+| 5. work items persist | **DONE** (W14-C) |
+| 6. private idempotent orchestration events | specified, W14-D next |
+| 7. human queues | not built (W14-E) |
+| 8. workflow projection inspectable | `btg.queue_health` + the workflow tables; the operator views are W14-F |
 | 9. engines remain authoritative | **HOLDS** — nothing added touches engine authority |
-| 10. security tests cover new runtime surfaces | **DONE** — every runtime function asserted by name |
+| 10. security tests cover new runtime surfaces | **DONE** — every runtime function asserted by name, in W14-B and W14-C |
 
 W14-A is the gate, and it is the gate for a reason: a durable runtime built on
 engines that have never executed against real Auth, real JWT, real PostgREST
