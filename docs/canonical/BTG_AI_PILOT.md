@@ -45,21 +45,31 @@ overlooked.
 | Gate | Status | Evidence |
 |---|---|---|
 | G1 build | PASS | `npm run build`, `/` prerendered static |
-| G2 CI | PASS | both `verify` runs green on head `ec63983` |
-| G3 migrations | PASS locally / BLOCKED live | 36 applied to a bare Postgres 16 with `ON_ERROR_STOP=1`, local and in CI; no live project connected |
-| G4 live auth | BLOCKED | no Supabase project designated for BTG AI |
-| G5 live RLS | PASS locally / BLOCKED live | 193 database tests as the `authenticated` role with `auth.uid()` from the request claim; unexercised through PostgREST |
-| G6 authenticated E2E | BLOCKED | 7 browser specs written, skipped for want of Supabase |
+| G2 CI | PASS | both `verify` runs green on head `89033c8` |
+| G3 migrations | PASS | 37/37 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster |
+| G4 live auth | BLOCKED | Auth is provisioned and the `on_auth_user_created` trigger is installed live, but no real sign-up has been exercised |
+| G5 live RLS | PASS (schema) / BLOCKED (exercised) | Policies and grants are byte-identical live; 203 database tests exercise them as the `authenticated` role with `auth.uid()` from the request claim. Not yet exercised through PostgREST with a real JWT |
+| G6 authenticated E2E | BLOCKED | 7 browser specs written, still skipped: the app is not yet wired to the live project |
 | G7 object storage | BLOCKED | certified by contract against `file_objects`; no object uploaded or retrieved |
-| G8 core learner journey | PASS locally / BLOCKED live | `tests/db/journey.test.ts`, sign-up to accepted offer through real commands |
-| G9 reviewer workflow | PASS locally / BLOCKED live | 28 verification tests; rubric-bound decision, self-review refused |
-| G10 employer workflow | PASS locally / BLOCKED live | 24 outcome/pipeline tests; disclosure-scoped applicant visibility |
-| G11 responsive UI | PASS for the landing / BLOCKED for the app | landing certified at 1440/1280/834/390; the authenticated surface has never been rendered against a live session |
+| G8 core learner journey | PASS (local) / BLOCKED (live) | `tests/db/journey.test.ts`, sign-up to accepted offer through real commands |
+| G9 reviewer workflow | PASS (local) / BLOCKED (live) | 28 verification tests; rubric-bound decision, self-review refused |
+| G10 employer workflow | PASS (local) / BLOCKED (live) | 24 outcome/pipeline tests; disclosure-scoped applicant visibility |
+| G11 responsive UI | PASS (landing) / BLOCKED (app) | landing certified at 1440/1280/834/390; the authenticated surface has never been rendered against a live session |
 | G12 audit trail | PASS | every governed transition carries actor, object, before, after, severity, workflow, `clock_timestamp()` ordering |
-| G13 error recovery | PASS locally | typed `ActionState` per failure; unhappy paths covered in the domain and database suites |
-| G14 no critical security defect | PASS | see the defect ledger; the cohort RLS recursion below was the last one found |
+| G13 error recovery | PASS (local) | typed `ActionState` per failure; unhappy paths covered in the domain and database suites |
+| G14 no critical security defect | PASS, after repair | defect 15 (any learner could complete any learner's pathway step via `btg.complete_pathway_step`) was found during live certification, reproduced with a probe, fixed, and is now guarded by 10 grant-surface tests. It was present locally too |
 | G15 no data-loss defect | PASS | append-only ledger and transcript; supersession never rewrites a prior claim |
 
-**Overall: `NOT_PILOT_READY` — blocked on live infrastructure, not on product.**
-Every gate that can be closed without a live Supabase project is closed. G4, G6
-and G7 cannot be assessed at all from here, and G11 only partially.
+**Overall: `NOT_PILOT_READY`.** The database tier is now live-certified and
+provably identical to the certified local schema, and the one critical defect
+found is fixed. What remains is exercising the live stack through the
+application: real Auth sign-up, RLS through PostgREST, the 7 browser specs,
+object storage, and the responsive pass over the authenticated surface. None of
+those are blocked by anything outside the repository any more — they are the
+next batch of work, not an external blocker.
+
+The one genuine external blocker left is AI-provider credentials: no
+`ANTHROPIC_API_KEY` is present, so live tutor-provider certification stays
+`READY_WITH_EXTERNAL_BLOCKER`. The deterministic tutor path — screening,
+refusal, schema validation, overclaim guard, provider-unavailable fallback — is
+certified without it.

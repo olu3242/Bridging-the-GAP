@@ -122,7 +122,7 @@ Scope:           E5 pathway, E6 learning, E7 AI tutor, E8 projects,
                  E12 opportunities, E13 matching, E14 cohort aggregates,
                  E15 application pipeline, E17 outcomes/analytics
 Status:          INTEGRATED
-Certification:   BTG_AI_E2E_INTEGRATED (pending live Supabase for LIVE_CERTIFIED)
+Certification:   BTG_AI_E2E_INTEGRATED (see Batch 7 for live schema certification)
 Schema:          +21 migrations, 20260918001600 → 20260918003600
                  (36 migrations total, 20260918000100 → 20260918003600)
 Implementation:  /pathway, /pathway/[stepId], /tutor, /projects,
@@ -133,7 +133,7 @@ Implementation:  /pathway, /pathway/[stepId], /tutor, /projects,
 Tests:           266/266 vitest (73 domain, 193 database/RLS),
                  14/14 Playwright (7 skipped: need Supabase)
 Failures:        none
-Defects repaired: 14 across the batches (see below)
+Defects repaired: 16 across the batches (see below)
 External blockers: Supabase project still unprovisioned. The browser journey
                  specs and the PostgREST request path remain unrun; nothing is
                  LIVE_CERTIFIED
@@ -176,6 +176,51 @@ External blockers: Supabase project still unprovisioned. The browser journey
 |---|---|---|---|
 | 12 | The application state machine declared the employer-side transitions but no command drove them, so an application could only ever be submitted or withdrawn — an outcome funnel with no way to reach an outcome | Missing commands | `advance_application` (organization side, re-authorized against the opportunity's organization, rejection requires a readable reason) and `respond_to_offer` (the applicant's alone; an organization attempting `accepted` is refused `42501`) |
 | 13 | A project reached `completed` inside `decide_review` with no event of its own | The only recorded fact was `verification.skill.verified` | `after update` trigger on `public.projects` emitting `project.project.completed`, so the event follows the transition wherever it is driven from |
+
+### Batch 7 — live Supabase convergence and certification
+
+```
+Scope:           Connect a live Supabase project; apply and prove the full
+                 forward chain; certify grants, RLS and seed content live
+Status:          INTEGRATED (live schema certified; live browser journey not yet run)
+Project:         epmtfqqemxumsjbthsmq (us-east-2, Postgres 17)
+Schema:          37/37 migrations applied live, 20260918000100 -> 20260918003700,
+                 recorded in the project's own migration ledger in order
+Parity:          Proved by fingerprint across ten sections -- columns,
+                 constraints, indexes, policies, function bodies, function
+                 ACLs, grants, triggers, RLS flags, transition registry.
+                 All ten identical to the local certified cluster
+Seed:            4 domains, 8 competencies, 40 levels, 6 prerequisite edges,
+                 24 questions, 24 answer keys, 28 transitions -- and the
+                 deterministic answer rotation reproduced 6/6/6/6 live
+Tests:           276/276 vitest (73 domain, 203 database/RLS)
+Defects repaired: 1 critical, 1 hosted-platform divergence (below)
+```
+
+Notes on applying the chain to a hosted project:
+
+- `tests/db/bootstrap.sql` is local-only and must **not** be applied: a hosted
+  project provides `auth.users`, `auth.uid()` and the `anon`/`authenticated`/
+  `service_role` roles natively. The chain references only `auth.uid()` and
+  `auth.users`, so it applies unchanged without the shim.
+- The `on_auth_user_created` trigger on `auth.users` installs cleanly.
+- Local runs Postgres 16 and this project runs 17; no migration needed a change
+  for the version difference.
+- The local shim installs `pgcrypto` into `public`, where a hosted project puts
+  it in `extensions`. That accounts for a 36-function difference in any naive
+  function count, and is why the parity fingerprint excludes extension-owned
+  functions.
+
+### Batch 7 defects
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 15 | **CRITICAL.** Any authenticated session could call the internal `btg.*` helpers. `btg.complete_pathway_step` is SECURITY DEFINER with no actor check, so any learner could mark **any** learner's pathway step `completed`, bypassing the learning-and-verified-evidence rule the engine rests on. `btg.issue_eligible_credentials` and `btg.compute_opportunity_matches` were open the same way | Postgres grants `EXECUTE` on every new function to the pseudo-role `PUBLIC`. Only `btg.notify` ever revoked it, and migration 000100 grants `usage on schema btg to authenticated`, so the schema was reachable. 276 tests missed it because the suite only ever asserted **table** grants, never function `EXECUTE` | `EXECUTE` on the `btg` schema withdrawn wholesale, then re-granted only to the eight read-only authorization predicates RLS must evaluate as the calling role. `tests/db/grants.test.ts` asserts both directions — that the internal mutators are unreachable, and that the predicates stay callable, since withdrawing those would fail every policy closed |
+| 16 | On a hosted project, `anon` and `authenticated` held all seven table privileges on everything in `public`, plus `EXECUTE` on every function, and `diagnostic_answer_keys` — deliberately granted to nobody — acquired a `SELECT` grant | Supabase ships default privileges for the `public` schema. The migrations were authored against a bare cluster where `authenticated` receives only what is explicitly granted, so the layered grant+RLS defence certified locally collapsed to RLS alone | Intended matrix re-asserted explicitly and default privileges revoked so future tables cannot re-acquire them. Nothing was exposed in the interim: RLS denied every path, because no permissive policy exists for `anon` and the write paths have no policy at all |
+
+**The critical one was confirmed present on the local cluster too, not only
+live.** It was a repository defect that live certification surfaced, which is
+the point of doing it.
 
 ### E17 design decisions worth knowing
 
@@ -221,7 +266,7 @@ Route classification: `BTG_AI_ROUTES.md`.
 ```bash
 npm install
 npm run db:local:up     # Postgres 16 cluster + all migrations
-npm run test:all        # 266 tests: domain + database/RLS
+npm run test:all        # 276 tests: domain + database/RLS
 npm run build
 BTG_E2E_CHROMIUM=/opt/pw-browsers/chromium npx playwright test
 ```
