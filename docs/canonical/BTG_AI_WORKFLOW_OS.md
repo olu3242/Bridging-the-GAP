@@ -227,19 +227,156 @@ worker has no session, so the runtime writes through
 attributed to a learner who did not take it, and the function is service-role
 only — a test proves a session calling it gets 42501.
 
-## W14-D — the private orchestration stream (specified, next)
+## W14-D — the private orchestration stream (BUILT, migration 20260918004100)
 
-`btg.orchestration_events`: `event_id`, `workflow_instance_id`,
-`work_item_id`, `step_key`, `event_type`, `idempotency_key`, `source`,
-bounded `payload`, `attempt`, `occurred_at`. Writable by `service_role` only;
-**no session role may publish an executable event**, enforced by grant and not
-by RLS alone. Audit events stay evidence.
+`btg.orchestration_events`: `event_id`, `workflow_instance_id`, `work_item_id`,
+`step_key`, `event_type`, `idempotency_key`, `source`, bounded `payload`,
+`attempt`, `occurred_at`. Three properties, each enforced structurally rather
+than by convention:
 
-The dispatcher claims from `btg.work_queue` (W14-B, no second queue), loads the
-instance's pinned version, validates lifecycle, resolves the step's allowlisted
-handler, executes, records, advances, and enqueues the continuation in the same
-transaction as the state change — never commit-then-enqueue, which leaves a
-window where work is lost.
+- **Trusted-only.** `grant select, insert … to service_role` and nothing else.
+  No session role may publish an executable event. A grant, not an RLS policy,
+  because a policy is a filter and a missing grant is a wall.
+- **Append-only.** A `btg.reject_mutation` trigger on UPDATE and DELETE. It
+  raises `restrict_violation` (23001) — worth writing down, because the obvious
+  guess is 42501 and a test that asserts the wrong code passes for the wrong
+  reason.
+- **Idempotent.** A unique `idempotency_key`. A duplicate publish is absorbed,
+  not deduplicated later by a reader.
+
+The transition, the event and the queue row are one transaction. Never
+commit-then-enqueue: that leaves a window in which the domain moved and the
+continuation does not exist.
+
+### One dispatcher, and no dynamic SQL
+
+`btg.dispatch_workflow_work(p_worker, p_batch, p_lease_seconds, p_instance_id)`
+is the only executor. Per item: claim under lease (`FOR UPDATE SKIP LOCKED`) →
+emit event → load the instance's **pinned** definition version → read the
+relational step → validate lifecycle → resolve the handler against
+`btg.workflow_handlers` → invoke the governed command through
+`btg.invoke_domain_command` → evaluate the completion check → advance → enqueue
+what is now ready.
+
+`invoke_domain_command` is a hardcoded `CASE` over command names that are
+foreign-keyed to `btg.workflow_commands`. **A payload never names a function.**
+There is no `execute format(…)` anywhere in the dispatch path, so a step
+definition cannot become an arbitrary code-execution primitive — and a DO block
+in the migration asserts that every allowlisted command has a branch, so the
+allowlist cannot drift ahead of the implementation either.
+
+`btg.workflow_commands.requires_session_actor` carries the other half of the
+rule: **the runtime is a worker, never an actor.** A trigger refuses any step
+naming a command that needs a session actor. Defect 20 was the generalised
+version of this — the guard originally checked `public.record_audit_event` and
+missed `public.enqueue_notification`, so `generate_pathway_for` aborted under a
+worker. The guard now discovers session-only writers from `pg_proc`, and a
+behavioural test runs the path with no session at all.
+
+### W14-D proof
+
+Certified in `tests/db/orchestration.test.ts` (35): duplicate event absorbed,
+duplicate queue delivery executing once, two concurrent workers on one item,
+crash before and after claim, lease expiration and reaping, crash after domain
+success but before ACK (the domain state stands and the retry is a no-op),
+retry with exponential backoff, poison item to dead-letter, durable wait and
+resume.
+
+Defects 22 and 28 came out of this: deadline breach and dead-lettering both
+routed through `btg.fail_work_item`, which *retries*. Terminal failure now goes
+through `btg.abandon_work_item`. A retry loop on a permanently failed item is
+the kind of defect that looks like a stall in production.
+
+## Application convergence — one product, not a platform beside it
+
+Diagnostic → Pathway runs through the existing engines, driven by three
+session-scoped entry points (`public.ensure_my_workflow`,
+`signal_my_workflows`, `advance_my_workflows`) and `public.my_workflow_state`.
+There is **no separate Workflow OS UI**: the learner sees a journey panel, the
+reviewer/mentor/employer see a work queue in the surface they already use, and
+the operator console is the only new route because operators are the only
+persona whose job is the runtime itself.
+
+Refresh, retry and duplicate submit do not duplicate effects: the instance is
+keyed by an idempotency key, the queue row is keyed by one, and the completion
+check is re-evaluated rather than trusted. `continueLearnerWork` does not throw
+— a stalled runtime degrades to "nothing new yet", never to a 500.
+
+Two pre-existing defects surfaced here. Defect 21: `generate_pathway`'s
+empty-plan branch activated a pathway with no ledger entry, and
+`learner_has_active_pathway` accepted a pathway with zero steps. Defect 29:
+learner timelines omitted events acted by a reviewer, mentor or employer,
+because the ledger's `actor_profile_id` answers "who acted" and a timeline needs
+"whose outcome is this" — closed by `btg.stamp_outcome_subject`, which derives
+`metadata.subject` from the object at insert, and a timeline view that prefers
+it.
+
+## W14-E — human work (BUILT, migrations 20260918004300/4310/4320/4330)
+
+`workflow_work_items` from W14-C carries human work too. **No second task
+system**, no placeholder queue.
+
+Claiming is one atomic `UPDATE` guarded by `status in ('ready','escalated') and
+claimed_by is null`, so one owner wins under concurrency without an advisory
+lock. Deadlines, SLA, escalation (`btg.escalate_overdue_work`), reassignment and
+idempotent completion are all there, and notification goes out through W14-B.
+
+**Human completion invokes the authoritative engine command.** Completing a work
+item never manufactures a domain outcome: `btg.complete_work_item` refuses
+unless `btg.assert_step_satisfied` can see the domain state the step claims.
+A reviewer's decision is `public.decide_review`; the work item merely records
+that the human did their part.
+
+The rule nobody can configure away:
+
+```sql
+-- Not configurable, not waivable, and it applies to operators too:
+-- an operator reviewing their own evidence is still self-review.
+if v_instance.subject_profile_id = p_claimant then
+  raise exception 'nobody may take human work on their own run'
+    using errcode = '42501';
+end if;
+```
+
+Four defects came out of the visibility work, all of them the same shape — a
+predicate that was wrong in the permissive or the restrictive direction and
+would not have been caught by reading it. Defect 24: a reviewer could not see
+persona-owned work. Defect 25: signalling did not bind human or pending steps.
+Defect 26: reassignment violated `work_item_persona_owner`. Defect 27: a policy
+wrote `w.workflow_instance_id = id`, which bound `id` to the subquery's own
+table and was therefore *always false* — the policy denied everything, silently.
+
+## W14-F — the operator control plane (BUILT, migration 20260918004400)
+
+Four projections, answering the ten questions an operator actually has:
+`workflow_instance_view` (where is this, what completed, what is executing, why
+is it waiting, in plain language), `workflow_timeline_view`,
+`workflow_work_queue_view` (who owns it next, attempts, SLA risk) and
+`workflow_blockers_view` (what failed, with severity).
+
+**Views are projections, never authority, and never an RLS bypass.** Where a
+view must read the private orchestration stream it does so through a narrow
+SECURITY DEFINER predicate (`btg.last_event_at`, `btg.check_requires_subject`)
+rather than by dropping `security_invoker` on the whole view — because a
+`security_invoker` view over `btg.orchestration_events` fails for *every*
+caller, `service_role` included, and the tempting fix is the one that opens the
+table. `tests/db/grants.test.ts` asserts `security_invoker` on every view and
+holds the definer exceptions in an explicit allowlist with their predicates, so
+the exception is enumerated rather than assumed.
+
+## W14-G — `BTG_LEARNER_TO_OPPORTUNITY` (BUILT, migration 20260918004500)
+
+One published definition, 14 steps, signup → onboarding → diagnostic → pathway
+→ learning → project → evidence → review → verified skill → credential →
+matching → application → employer decision → outcome. It **duplicates no E1–E17
+logic**: every step names an allowlisted governed command and a completion check
+that reads the domain.
+
+Human and external steps are durable waits, not polls. In-flight instances pin
+their definition version, and publishing a new version supersedes the old for
+*new* instances only — there is no silent workflow-version mutation. Optional
+steps skip through `btg.skip_work_item` rather than blocking a run on a step the
+learner legitimately does not need.
 
 ## AI as a worker, never an authority
 
@@ -270,22 +407,30 @@ admin-tunable turns the differentiator into a support ticket.
 
 ## Status
 
-**`BTG_WORKFLOW_OS_BLOCKED`** — on W14-A, externally.
+**`BTG_WORKFLOW_OS_READY_WITH_BLOCKERS`** — implementation complete and
+certified locally; live certification of the substrate remains external.
 
 | Stop condition | State |
 |---|---|
-| 1. live substrate certified | **BLOCKED_EXTERNAL** — egress policy denies the project host |
-| 2. notifications execute through the worker | **DONE** (locally certified; live schema applied) |
+| 1. live substrate certified | **BLOCKED_EXTERNAL** — egress policy denies the project host (Auth, JWT, PostgREST, Storage, deployed invoker) |
+| 2. notifications execute through the worker | **DONE** (W14-B) |
 | 3. durable workflow instances | **DONE** (W14-C) |
 | 4. versioned definitions | **DONE** (W14-C: immutable, monotonic, pinned) |
 | 5. work items persist | **DONE** (W14-C) |
-| 6. private idempotent orchestration events | specified, W14-D next |
-| 7. human queues | not built (W14-E) |
-| 8. workflow projection inspectable | `btg.queue_health` + the workflow tables; the operator views are W14-F |
-| 9. engines remain authoritative | **HOLDS** — nothing added touches engine authority |
-| 10. security tests cover new runtime surfaces | **DONE** — every runtime function asserted by name, in W14-B and W14-C |
+| 6. private idempotent orchestration events | **DONE** (W14-D) |
+| 7. human queues | **DONE** (W14-E), including the self-review rule |
+| 8. workflow projection inspectable | **DONE** (W14-F: four projections, no new authority) |
+| 9. engines remain authoritative | **HOLDS** — every mutation still goes through a governed engine command |
+| 10. security tests cover new runtime surfaces | **DONE** — 430 tests, every runtime function asserted by name |
 
-W14-A is the gate, and it is the gate for a reason: a durable runtime built on
+Schema convergence is measured rather than asserted: the eleven-section
+fingerprint in `scripts/schema-fingerprint.sql` returns **identical output on
+the local certification cluster and the hosted project**, section 11 covering
+the privileges a not-yet-created object would inherit.
+
+W14-A is still the gate, and for the original reason: a durable runtime built on
 engines that have never executed against real Auth, real JWT, real PostgREST
-and real Storage multiplies unknowns. When something stalls you cannot tell
-whether it is the orchestrator or the engine.
+and real Storage multiplies unknowns, and when something stalls you cannot tell
+whether it is the orchestrator or the engine. What changed is that everything
+independently testable has been tested — W14-A is a release gate, not a reason
+to stop implementing.

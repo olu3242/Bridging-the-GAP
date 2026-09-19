@@ -46,7 +46,7 @@ overlooked.
 |---|---|---|
 | G1 build | PASS | `npm run build`, `/` prerendered static |
 | G2 CI | PASS | both `verify` runs green on the current head |
-| G3 migrations | PASS | 40/40 applied to live project `epmtfqqemxumsjbthsmq` and recorded in its ledger in order; ten-section fingerprint identical to the local certified cluster, re-proved after each fix, reproducible via `scripts/schema-fingerprint.sql` |
+| G3 migrations | PASS | 51/51 applied to live project `epmtfqqemxumsjbthsmq`, the ledger's name set provably equal to the repository's files; **eleven-section** fingerprint identical to a from-scratch local rebuild, reproducible via `scripts/schema-fingerprint.sql`. Two live-only conditions reported in `BTG_AI_STATUS.md` rather than hidden: one out-of-order ledger entry whose end state is proven equivalent, and six `supabase_admin`-grantor default privileges that no migration can revoke and that nothing inherits |
 | G4 live auth | BLOCKED_EXTERNAL | Auth provisioned and the `on_auth_user_created` trigger installed live, but this session's egress policy denies `epmtfqqemxumsjbthsmq.supabase.co` (403 on CONNECT), so no sign-up can be exercised from here |
 | G5 live RLS / PostgREST | BLOCKED_EXTERNAL | Policies, grants and function ACLs byte-identical live; every denial re-proved on the live database as the `authenticated` role with a session claim. The PostgREST/JWT path itself is unreachable from this session |
 | G6 authenticated E2E | BLOCKED_EXTERNAL | 7 browser specs written and still skipped; the browser cannot reach the project host |
@@ -57,9 +57,12 @@ overlooked.
 | G11 responsive app UI | PASS (landing) / BLOCKED_EXTERNAL (app) | landing certified at 1440/1280/834/390; the authenticated surface has still never been rendered against a live session |
 | G12 audit | PASS | every governed transition carries actor, object, before, after, severity, workflow, `clock_timestamp()` ordering — and the ledger is now writable only from inside a governed command |
 | G13 recovery | PASS (local) | typed `ActionState` per failure; unhappy paths covered in the domain and database suites |
-| G14 no critical security defect | PASS, after two repairs | defect 15 (any learner could complete any learner's pathway step) and defect 17 (any learner could forge their own outcome history in the ledger). Both reproduced with probes, fixed, and guarded by 19 grant-surface tests |
+| G14 no critical security defect | PASS, after repairs | defect 15 (any learner could complete any learner's pathway step), defect 17 (any learner could forge their own outcome history in the ledger), and in the W14 convergence defect 27 (a policy that was always false, so it denied the people it was written to admit) and defect 30 (a default privilege that would have given `authenticated` EXECUTE on every future function in `public`). All reproduced, fixed, and guarded by 23 grant-surface tests |
 | G15 no data-loss defect | PASS | append-only ledger and transcript; supersession never rewrites a prior claim |
 | G16 notification delivery | PASS (local) / BLOCKED_EXTERNAL (live) | W14-B execution tier: `pending → sent` is a registered transition driven by a real worker, 16 execution tests. Live drain is unwired — the invoker needs a service-role key this session cannot hold |
+| G17 orchestration integrity | PASS (local) | W14-D: 35 tests over duplicate events, duplicate delivery, concurrent workers, crash before and after claim, lease expiry, crash after domain success before ACK, backoff, poison to dead-letter, durable wait and resume. No dynamic SQL in the dispatch path, so a step definition cannot name a function to execute |
+| G18 human work integrity | PASS (local) | W14-E: atomic claim under concurrency (one owner wins), SLA and escalation, idempotent completion, and **no self-review** — enforced in `btg.assert_claim_allowed` for every persona including operators, not configurable. Human completion invokes the authoritative engine command; a work item never manufactures a domain outcome |
+| G19 operator plane is not an authority | PASS (local) | W14-F: four projections, `security_invoker` asserted on every view with definer exceptions held in an explicit allowlist alongside their predicates. No write path, no RLS bypass |
 
 **Overall: `NOT_PILOT_READY`.**
 
@@ -67,10 +70,14 @@ Every gate that can be closed without reaching the project host over the
 network is closed, and the database tier is certified live and provably
 identical to the certified local schema. W14-B closed the one gap that was a
 repository defect rather than an environment limit: notifications now have a
-worker that delivers them (`BTG_AI_WORKFLOW_OS.md`). But G4, G6 and G7 are
-pilot-critical and have never been exercised: nobody has loaded an authenticated page against
-live infrastructure, and no file has been uploaded. Calling that pilot-ready
-would be a claim the evidence does not support, so it is not made.
+worker that delivers them (`BTG_AI_WORKFLOW_OS.md`). W14-D through W14-G close the
+orchestration, human-work and operator gaps the same way — as implementation and
+local certification, with the live half still owed (G17-G19).
+
+But G4, G6 and G7 are pilot-critical and have never been exercised: nobody has
+loaded an authenticated page against live infrastructure, and no file has been
+uploaded. Calling that pilot-ready would be a claim the evidence does not
+support, so it is not made.
 
 ## External blockers
 

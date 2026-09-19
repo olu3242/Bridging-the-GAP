@@ -479,14 +479,107 @@ The positive walk is certified locally only. Running it live would require an
 `auth.users` row, and the W14 contract forbids fabricating one to get past the
 W14-A gate — so it was not done, rather than done and reported as live.
 
+## W14-D/E/F/G — Workflow OS end-to-end convergence
+
+```
+Wave:            W14 — Workflow OS Convergence, batches D, E, F, G
+                 + application convergence
+Status:          INTEGRATED
+Certification:   BTG_WORKFLOW_OS_READY_WITH_BLOCKERS
+                 (implementation complete; live substrate certification external)
+Schema:          +11 forward migrations (20260918004100 - 20260918004800), 51 total
+Implementation:  D  btg.orchestration_events (trusted-only, append-only,
+                    idempotent) + one generic dispatcher, no dynamic SQL
+                 E  human work on the existing workflow_work_items: atomic
+                    claim, SLA, escalation, reassignment, no self-review
+                 F  four operator projections, no new authority
+                 G  BTG_LEARNER_TO_OPPORTUNITY, 14 steps, published
+                 App: ensure_my_workflow / signal_my_workflows /
+                    advance_my_workflows / my_workflow_state / my_work_queue,
+                    wired into the surfaces that already existed
+Tests:           430/430 vitest across 26 files (+88 since W14-C)
+                 14/21 Playwright pass, 7 skip on the live-Auth gate
+Failures:        none
+Defects repaired: 11 (defects 20-30; 5 of them pre-existing)
+External blockers: W14-A unchanged - BLOCKED_EXTERNAL
+Next execution:  W14-A live certification, when the substrate is reachable
+```
+
+Architecture, rationale and the properties each batch guarantees are in
+`BTG_AI_WORKFLOW_OS.md`. This section records what was certified and what broke.
+
+### Defects found and repaired
+
+| # | Defect | Root cause | Repair |
+|---|---|---|---|
+| 20 | `generate_pathway_for` aborted when a worker ran it, so the pathway step of a workflow could never complete | The worker-drivable guard checked `public.record_audit_event` and missed `public.enqueue_notification` — both are session-only writers, only one was known to the guard | `btg.notify` as the runtime counterpart, and the guard no longer carries a hand-written list: it discovers session-only writers from `pg_proc`, plus a behavioural test that runs the path with no session at all |
+| 21 | **Pre-existing.** A learner could hold an "active" pathway with no ledger entry and no steps | `generate_pathway`'s empty-plan branch activated the pathway without recording it; `learner_has_active_pathway` accepted a pathway with zero steps | Both closed: the branch records, and the check requires at least one step |
+| 22 | A work item past its deadline was retried instead of failed | Deadline breach routed through `btg.fail_work_item`, which schedules a retry | `btg.abandon_work_item` for terminal failure |
+| 23 | A global dispatcher tally made tests order-dependent on a shared database | The dispatcher claimed across all instances, so a concurrent test changed another's counts | `p_instance_id` on `claim_workflow_items` and `dispatch_workflow_work`; tests drain one instance |
+| 24 | A reviewer could not see work assigned to their persona | Both the work-item and the definition-catalog policies omitted the persona-owned case | `btg.may_act_on_item` / `may_see_version` / `may_see_definition` / `may_act_on_instance`, and the policies rewritten to use them |
+| 25 | A signal did not release the human step it satisfied | `signal_workflow_subject` bound only enqueueable steps, skipping `pending` and human ones | It now binds pending and human steps without enqueueing them — a human step is a durable wait, not queued work |
+| 26 | Reassigning a work item raised a constraint violation | The new owner was set without clearing `owner_persona`, violating `work_item_persona_owner` | `reassign_work_item` clears the persona |
+| 27 | A policy denied everything, silently | It read `w.workflow_instance_id = id`, which binds `id` to the subquery's own table — always false | Qualified the outer reference. Worth noting the failure mode: a policy that is always false looks exactly like correct denial |
+| 28 | A poison item was retried forever instead of dead-lettered | Same root cause as 22, on the dead-letter path | Same repair |
+| 29 | **Pre-existing.** A learner's timeline omitted events a reviewer, mentor or employer acted | The ledger's `actor_profile_id` answers "who acted"; a learner timeline needs "whose outcome is this" | `btg.stamp_outcome_subject` derives `metadata.subject` from the object at insert, and the timeline view prefers it over the actor |
+| 30 | **Pre-existing.** Every function a future migration created in `public` would have been EXECUTE-able by `authenticated` with no GRANT written anywhere | 003700's default-privilege sweep revoked function defaults from `anon` and not from `authenticated`, so the hosted project still carried `authenticated=X` as a default for grantor `postgres` | 004800 revokes the table, sequence and function defaults for both session roles and PUBLIC, in both schemas; fingerprint section 11 and two guard tests now read the privileges a not-yet-created object would inherit |
+
+Defect 30 is the second half of a lesson 003700 taught once already, and the
+standing rule it produced — *do not assume the previous default-privilege issue
+was the only one* — is what found it. A default privilege grants nothing until
+something is created, so no test that reads existing objects can see it. The
+ten-section fingerprint could not see it either, which is why there are now
+eleven.
+
+Defect 27 deserves a second mention for the same reason: an always-false policy
+and a correct policy are indistinguishable from the outside. Both were found by
+asserting the *positive* case — that the right person can see the row — not
+only that the wrong one cannot.
+
+A methodology note, since it cost an hour twice now. Sections 04, 07 and 08
+appeared to diverge in this pass, and did not: the live query had been *retyped*
+from memory rather than run from `scripts/schema-fingerprint.sql`, and the
+retyped version formatted its rows differently (it included policy roles, and
+read function EXECUTE through `aclexplode` instead of
+`has_function_privilege`). Two schemas hashed differently because two different
+questions were asked. This is defect 19's lesson in its second form: the script
+exists so the question is identical on both sides — run it, do not retype it.
+Confirmed by bucketing both sides with one shared query, which showed all 114
+buckets equal before the script itself confirmed 11/11.
+
+### Live state
+
+51/51 migrations applied to `epmtfqqemxumsjbthsmq` and recorded in its ledger,
+with the ledger's set of names provably equal to the repository's migration
+files. **All eleven fingerprint sections identical** to a from-scratch local
+rebuild, including grants and the default privileges of section 11.
+
+Two live-only conditions, reported rather than folded into a matching hash:
+
+- The ledger records `20260918004300_human_work` as applied before `004100` and
+  `004200` (it had to be separate, because Postgres refuses to use a new enum
+  value in the transaction that added it). The end state is nonetheless proven
+  equivalent to an in-order build: the local cluster was rebuilt from scratch in
+  file order and all eleven sections match.
+- Six default-privilege entries whose grantor is `supabase_admin` grant `anon`
+  and `authenticated` broadly in `public`. **`postgres` is not a member of that
+  role**, so no migration can revoke them — and nothing inherits them: every
+  relation in `public` and `btg` is owned by `postgres`. Verified, not assumed.
+
+The positive human-work and coordinator walks are certified locally only. Doing
+them live would require `auth.users` rows, and the W14 contract forbids
+fabricating one to get past the W14-A gate — so they were not done, rather than
+done and reported as live.
+
 ## How to reproduce the certification
 
 ```bash
 npm install
 npm run db:local:up     # Postgres 16 cluster + all migrations
-npm run test:all        # 342 tests: domain + database/RLS
+npm run test:all        # 430 tests: domain + database/RLS
 npm run build
 BTG_E2E_CHROMIUM=/opt/pw-browsers/chromium npx playwright test
+psql "$BTG_TEST_DATABASE_URL" -At -F'|' -f scripts/schema-fingerprint.sql
 ```
 
 The `db` project applies `supabase/migrations` to a bare cluster plus the

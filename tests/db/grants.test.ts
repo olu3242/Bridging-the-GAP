@@ -349,4 +349,63 @@ describe("the table grant matrix is the intended one", () => {
     );
     expect(rows).toEqual([]);
   });
+
+  it("gives no role a write privilege on any view in public", async () => {
+    // A read model is a read model. Supabase's default privileges hand
+    // `service_role` INSERT/UPDATE/DELETE/TRUNCATE on anything created in
+    // `public`, views included; 004700 revoked them and revoked the default so
+    // the next view starts clean. A view here is not auto-updatable, so such a
+    // grant buys nothing even before it is revoked -- which is exactly why it
+    // would sit unnoticed. This fails the moment one comes back.
+    const rows = await sql<{ table_name: string; grantee: string; privilege_type: string }>(
+      `select table_name, grantee, privilege_type
+       from information_schema.role_table_grants g
+       where g.table_schema = 'public'
+         and g.grantee in ('anon','authenticated','service_role')
+         and g.privilege_type <> 'SELECT'
+         and exists (
+           select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+           where n.nspname = 'public' and c.relkind = 'v' and c.relname = g.table_name)
+       order by table_name, grantee, privilege_type`,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it("grants no session role anything implicitly on a future object", async () => {
+    // Defect 30. A default privilege is invisible until it grants something:
+    // 003700 revoked the function defaults for `anon` and missed
+    // `authenticated`, so the next function created in `public` would have
+    // been EXECUTE-able with no GRANT in the repository. Every grantor, both
+    // schemas, every object type, `anon`/`authenticated`/PUBLIC -- because the
+    // point is the object that does not exist yet.
+    const rows = await sql<{ grantor: string; schema: string; objtype: string; acl: string }>(
+      `select pg_get_userbyid(d.defaclrole) as grantor, n.nspname as schema,
+              d.defaclobjtype::text as objtype, a::text as acl
+       from pg_default_acl d
+       join pg_namespace n on n.oid = d.defaclnamespace
+       cross join unnest(d.defaclacl) a
+       where n.nspname in ('public','btg')
+         and (a::text like 'anon=%'
+              or a::text like 'authenticated=%'
+              or a::text like '=%')
+       order by 1, 2, 3, 4`,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it("leaves no function relying on the PUBLIC EXECUTE default", async () => {
+    // A NULL proacl means Postgres's built-in default, which is EXECUTE to
+    // PUBLIC. No default-privilege revoke reaches it -- only an explicit
+    // `revoke execute ... from public` on the function does.
+    const rows = await sql<{ nspname: string; proname: string }>(
+      `select n.nspname, p.proname
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname in ('public','btg')
+         and p.proacl is null
+         and not exists (select 1 from pg_depend d
+                         where d.objid = p.oid and d.deptype = 'e')
+       order by 1, 2`,
+    );
+    expect(rows).toEqual([]);
+  });
 });

@@ -11,6 +11,13 @@
 --   * the auth schema -- local is a shim, hosted is real Supabase Auth.
 --   * grantees other than anon/authenticated/service_role -- a hosted project
 --     carries platform roles a bare cluster has never heard of.
+--   * default privileges whose grantor is a platform role (`supabase_admin`) --
+--     section 11 covers the grantors that create objects here. The hosted
+--     project carries `supabase_admin` defaults granting anon and authenticated
+--     everything in `public`; `postgres` is not a member of that role, so no
+--     migration can revoke them, and nothing inherits them either: every
+--     relation in `public` and `btg` is owned by `postgres`. It is reported as
+--     an external condition, not folded into a matching hash.
 --
 -- Every aggregate sorts `collate "C"`. Without it the fingerprint is
 -- collation-dependent: the local cluster and the hosted project order text
@@ -109,6 +116,29 @@ transitions_fp as (
     select machine || ':' || from_state || '->' || to_state as x
     from btg.state_transitions
   ) s
+),
+/* Section 11 is about the object that does not exist yet. Sections 08 and 09
+   read the privileges objects hold; a default privilege grants the next one
+   something with no GRANT written anywhere. Defect 30 was exactly that: a
+   default of `authenticated=X` on functions in `public`, left behind because
+   003700's revoke named `anon` only. Empty on both sides is the invariant --
+   no session role, and not PUBLIC, receives anything implicitly. */
+implicit_fp as (
+  select coalesce(md5(string_agg(x, E'\n' order by x collate "C")), '(none)') as fp from (
+    select pg_get_userbyid(d.defaclrole) || ':' || n.nspname || ':' ||
+           d.defaclobjtype::text || ':' || a::text as x
+    from pg_default_acl d
+    join pg_namespace n on n.oid = d.defaclnamespace
+    cross join unnest(d.defaclacl) a
+    where n.nspname in ('public','btg')
+      and pg_get_userbyid(d.defaclrole) in (
+        select distinct pg_get_userbyid(c.relowner)
+        from pg_class c join pg_namespace cn on cn.oid = c.relnamespace
+        where cn.nspname in ('public','btg'))
+      and (a::text like 'anon=%'
+           or a::text like 'authenticated=%'
+           or a::text like '=%')
+  ) s
 )
 select '01_columns' as section, fp from columns_fp
 union all select '02_constraints', fp from constraints_fp
@@ -120,4 +150,5 @@ union all select '07_functions', fp from functions_fp
 union all select '08_function_acl', fp from function_acl_fp
 union all select '09_grants', fp from grants_fp
 union all select '10_transitions', fp from transitions_fp
+union all select '11_implicit_grants', fp from implicit_fp
 order by section;
