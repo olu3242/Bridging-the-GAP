@@ -10,6 +10,7 @@ import {
   submitAttempt,
 } from "@/server/services/diagnostic-service";
 import { requireContext } from "@/server/services/actor";
+import { continueLearnerWork } from "@/server/services/workflow-service";
 import { type ActionState, errorState, fieldErrorsFrom, toActionState } from "./action-result";
 
 /**
@@ -47,6 +48,15 @@ export async function answerBaselineQuestionAction(
     if (!following) {
       await submitAttempt(supabase, parsed.data.attemptId);
       finished = true;
+      /* The baseline is measured, so the pathway workflow has what it waits
+         for. Declaring and draining here means the pathway exists by the time
+         the learner reaches the results page, without the product depending on
+         a deployed invoker. */
+      await continueLearnerWork(supabase, {
+        workflows: ["pathway_generation"],
+        subjectType: "diagnostic_attempt",
+        subjectId: parsed.data.attemptId,
+      });
     }
   } catch (error) {
     return toActionState(error);
@@ -56,6 +66,7 @@ export async function answerBaselineQuestionAction(
   if (finished) {
     revalidatePath("/baseline/results");
     revalidatePath("/dashboard");
+    revalidatePath("/pathway");
     redirect("/baseline/results?scored=1");
   }
   redirect("/baseline");
@@ -73,6 +84,11 @@ export async function submitBaselineAction(_prev: ActionState, formData: FormDat
     const { supabase, actor } = await requireContext();
     assertCan(actor, "learner.dashboard.view");
     await submitAttempt(supabase, attemptId);
+    await continueLearnerWork(supabase, {
+      workflows: ["pathway_generation"],
+      subjectType: "diagnostic_attempt",
+      subjectId: attemptId,
+    });
   } catch (error) {
     return toActionState(error);
   }
@@ -80,13 +96,19 @@ export async function submitBaselineAction(_prev: ActionState, formData: FormDat
   revalidatePath("/baseline");
   revalidatePath("/baseline/results");
   revalidatePath("/dashboard");
+  revalidatePath("/pathway");
   redirect("/baseline/results?scored=1");
 }
 
 export async function startBaselineAction(): Promise<void> {
   const { supabase, actor } = await requireContext();
   assertCan(actor, "learner.dashboard.view");
-  await startBaselineAttempt(supabase);
+  const attempt = await startBaselineAttempt(supabase);
+  await continueLearnerWork(supabase, {
+    workflows: ["baseline_diagnostic"],
+    subjectType: "diagnostic_attempt",
+    subjectId: attempt?.id,
+  });
   revalidatePath("/baseline");
   redirect("/baseline");
 }

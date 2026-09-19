@@ -318,8 +318,8 @@ describe("instances", () => {
     const { definition, version } = await draftDefinition();
     await sql(
       `insert into public.workflow_definition_steps
-         (definition_version_id, step_key, ordinal, item_type, handler, domain_command)
-       values ($1, 'call_command', 1, 'system', 'domain_command', 'public.some_command')`,
+         (definition_version_id, step_key, ordinal, item_type, handler)
+       values ($1, 'ask_the_model', 1, 'ai', 'ai_worker')`,
       [version],
     );
     await asServiceRole((client) =>
@@ -335,6 +335,7 @@ describe("instances", () => {
       ),
     );
     expect(rejection.code).toBe("0A000");
+    expect(rejection.message).toMatch(/ai_worker/);
   });
 });
 
@@ -719,6 +720,26 @@ describe("the workflow runtime's security boundary", () => {
       client.query("select count(*)::int as n from public.workflow_definition_steps"),
     );
     expect(steps.rows[0].n).toBe(0);
+  });
+
+  it("shows a learner the definition their own run pins, and no other", async () => {
+    const learner = await createUser(`wf-rls-own-def-${nonce()}`);
+    const instance = await startBaselineWorkflow(learner.id);
+    expect(instance).toBeTruthy();
+
+    const visible = await asUser(learner.id, (client) =>
+      client.query("select key from public.workflow_definitions order by key"),
+    );
+    expect(visible.rows.map((r) => r.key)).toEqual(["baseline_diagnostic"]);
+
+    const steps = await asUser(learner.id, (client) =>
+      client.query("select distinct step_key from public.workflow_definition_steps order by step_key"),
+    );
+    expect(steps.rows.map((r) => r.step_key)).toEqual([
+      "attempt_scored",
+      "attempt_started",
+      "baseline_recorded",
+    ]);
   });
 
   it("shows an organization's run to its admin and not to another organization's", async () => {
