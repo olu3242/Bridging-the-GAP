@@ -292,7 +292,7 @@ describe("instances", () => {
     const learner = await createUser(`wf-disabled-${nonce()}`);
     const rejection = await asServiceRole((client) =>
       expectRejection(
-        client.query("select btg.start_workflow('mentorship', $1, null, null)", [learner.id]),
+        client.query("select btg.start_workflow('credentials', $1, null, null)", [learner.id]),
       ),
     );
     expect(rejection.message).toMatch(/not enabled/);

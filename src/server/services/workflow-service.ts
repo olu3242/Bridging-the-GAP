@@ -151,3 +151,167 @@ export async function continueLearnerWork(
     return null;
   }
 }
+
+// --------------------------------------------------------- human work ---
+
+export interface WorkQueueRow {
+  work_item_id: string;
+  workflow_instance_id: string;
+  workflow: string;
+  workflow_name: string;
+  step_key: string;
+  step_ordinal: number;
+  item_type: string;
+  status: string;
+  owner_kind: string;
+  owner_persona: string | null;
+  owner_profile_id: string | null;
+  priority: number;
+  deadline_at: string | null;
+  overdue: boolean;
+  attempts: number;
+  subject_type: string | null;
+  subject_id: string | null;
+  subject_profile_id: string | null;
+  organization_id: string | null;
+  mine: boolean;
+  completion_check: string | null;
+  created_at: string;
+}
+
+/**
+ * The persona queue. One projection behind every dashboard: the database
+ * decides what a caller may act on, so filtering here is presentation only.
+ */
+export async function getMyWorkQueue(
+  supabase: SupabaseClient,
+  options: { workflow?: string; limit?: number } = {},
+): Promise<WorkQueueRow[]> {
+  let query = supabase
+    .from("my_work_queue")
+    .select("*")
+    .order("priority", { ascending: true })
+    .order("deadline_at", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true })
+    .limit(options.limit ?? 50);
+  if (options.workflow) query = query.eq("workflow", options.workflow);
+
+  const { data, error } = await query;
+  if (error) throw fromPostgresError(error, "We could not load your work queue.");
+  return (data ?? []) as WorkQueueRow[];
+}
+
+export async function claimWorkItem(
+  supabase: SupabaseClient,
+  workItemId: string,
+  leaseHours = 4,
+): Promise<void> {
+  const { error } = await supabase.rpc("claim_work_item", {
+    p_item_id: workItemId,
+    p_lease_hours: leaseHours,
+  });
+  if (error) throw fromPostgresError(error, "We could not give you that work.");
+}
+
+export async function releaseWorkItem(
+  supabase: SupabaseClient,
+  workItemId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("release_work_item", { p_item_id: workItemId });
+  if (error) throw fromPostgresError(error, "We could not put that work back.");
+}
+
+/**
+ * Asks the runtime to notice that the person already did the real thing. The
+ * database refuses unless the engines show it, so this cannot approve, verify
+ * or decide anything by itself.
+ */
+export async function completeMyWorkItem(
+  supabase: SupabaseClient,
+  workItemId: string,
+  result: Record<string, unknown> = {},
+): Promise<void> {
+  const { error } = await supabase.rpc("complete_my_work_item", {
+    p_item_id: workItemId,
+    p_result: result,
+  });
+  if (error) throw fromPostgresError(error, "That work is not finished yet.");
+}
+
+export async function reassignWorkItem(
+  supabase: SupabaseClient,
+  workItemId: string,
+  toProfileId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("reassign_work_item", {
+    p_item_id: workItemId,
+    p_to_profile: toProfileId,
+  });
+  if (error) throw fromPostgresError(error, "We could not reassign that work.");
+}
+
+export async function escalateOverdueWork(
+  supabase: SupabaseClient,
+  limit = 50,
+): Promise<number> {
+  const { data, error } = await supabase.rpc("escalate_overdue_work", { p_limit: limit });
+  if (error) throw fromPostgresError(error, "We could not run the escalation sweep.");
+  return Number(data ?? 0);
+}
+
+/**
+ * Closes the caller's claimed work item for one domain entity, once they have
+ * performed the governed command that settles it.
+ *
+ * Non-throwing for the same reason as `continueLearnerWork`: the reviewer's
+ * decision, the mentor's answer or the employer's move has already committed.
+ * Reporting a failure here would describe work that succeeded, and the item
+ * stays claimed and visible for a retry either way.
+ */
+export async function completeWorkForSubject(
+  supabase: SupabaseClient,
+  subjectType: string,
+  subjectId: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("my_work_queue")
+      .select("work_item_id")
+      .eq("subject_type", subjectType)
+      .eq("subject_id", subjectId)
+      .eq("mine", true)
+      .limit(1);
+    if (error) throw fromPostgresError(error, "We could not find that work item.");
+
+    const item = (data ?? [])[0] as { work_item_id: string } | undefined;
+    if (!item) return false;
+
+    await completeMyWorkItem(supabase, item.work_item_id);
+    return true;
+  } catch (error) {
+    console.error("could not close the work item for a completed decision", {
+      subjectType,
+      subjectId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
+/**
+ * Closes the reviewer's workflow step for a decision they just recorded.
+ * Resolves the evidence from the review assignment rather than asking the
+ * caller to carry it, so the action stays about the decision.
+ */
+export async function completeWorkForReview(
+  supabase: SupabaseClient,
+  reviewId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("review_assignments")
+    .select("evidence_id")
+    .eq("id", reviewId)
+    .maybeSingle();
+  if (error || !data) return false;
+  return completeWorkForSubject(supabase, "evidence", (data as { evidence_id: string }).evidence_id);
+}

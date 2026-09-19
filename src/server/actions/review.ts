@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { assertCan } from "@/domain/identity/actor";
 import { decideReviewSchema } from "@/domain/evidence/verification";
 import { claimReview, decideReview } from "@/server/services/review-service";
+import { completeWorkForReview } from "@/server/services/workflow-service";
 import { requireContext } from "@/server/services/actor";
 import { type ActionState, errorState, fieldErrorsFrom, toActionState } from "./action-result";
 
@@ -52,6 +53,11 @@ export async function decideReviewAction(_prev: ActionState, formData: FormData)
     }
 
     await decideReview(supabase, parsed.data);
+    /* The engine has recorded the decision and, where the rubric passed,
+       produced the verified skill. Closing the workflow step is a separate,
+       best-effort continuation: the runtime re-checks the domain before it
+       records anything, and the reviewer's decision is already committed. */
+    await completeWorkForReview(supabase, parsed.data.reviewId);
   } catch (error) {
     return toActionState(error);
   }

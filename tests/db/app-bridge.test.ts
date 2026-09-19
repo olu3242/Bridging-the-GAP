@@ -178,7 +178,7 @@ describe("the application's surface is narrow and scoped to its caller", () => {
   it("refuses a workflow the platform did not mark self-startable", async () => {
     const learner = await createUser(`app-notself-${nonce()}`);
     const rejection = await asUser(learner.id, (client) =>
-      expectRejection(client.query("select public.ensure_my_workflow('mentorship')")),
+      expectRejection(client.query("select public.ensure_my_workflow('credentials')")),
     );
     expect(rejection.code).toBe("42501");
   });

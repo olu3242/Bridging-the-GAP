@@ -7,6 +7,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
 import { assertCan } from "@/domain/identity/actor";
 import { getReviewQueue } from "@/server/services/review-service";
+import { getMyWorkQueue } from "@/server/services/workflow-service";
+import { WorkQueuePanel } from "@/components/app/work-queue-panel";
 import { claimReviewAction } from "@/server/actions/review";
 import { formatRelative } from "@/lib/utils";
 
@@ -22,6 +24,10 @@ export default async function ReviewQueuePage({
   assertCan(actor, "review.decide");
 
   const supabase = await createSupabaseServerClient();
+  // Two queues, deliberately: the engine's review assignments, and the
+  // workflow steps waiting on this reviewer with their deadlines and
+  // escalations. The decision itself is still made on the review screen.
+  const workQueue = await getMyWorkQueue(supabase, { workflow: "verification" });
   const queue = (await getReviewQueue(supabase)) as unknown as Array<{
     id: string;
     status: string;
@@ -50,6 +56,14 @@ export default async function ReviewQueuePage({
           The learner has been notified, and the outcome is on the audit trail.
         </Alert>
       ) : null}
+
+      <WorkQueuePanel
+        rows={workQueue}
+        title="Assigned to you as a reviewer"
+        description="Each item is a workflow step waiting on a decision. Marking one done only records what the review already decided."
+        emptyTitle="No workflow steps waiting"
+        emptyDescription="Verification steps appear here as learners submit evidence."
+      />
 
       <Card>
         <CardHeader>

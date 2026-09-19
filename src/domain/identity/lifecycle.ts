@@ -251,16 +251,22 @@ export const workflowInstanceMachine = createStateMachine<WorkflowStatus>("workf
 });
 
 export const WORK_ITEM_STATUSES = [
-  "pending", "ready", "claimed", "completed", "failed", "cancelled",
+  "pending", "ready", "claimed", "completed", "failed", "cancelled", "escalated",
 ] as const;
 export type WorkItemStatus = (typeof WORK_ITEM_STATUSES)[number];
 
 export const workItemMachine = createStateMachine<WorkItemStatus>("work_item", {
   pending: ["ready", "cancelled"],
-  ready: ["claimed", "completed", "failed", "cancelled"],
-  claimed: ["completed", "failed", "ready", "cancelled"],
+  ready: ["claimed", "completed", "failed", "cancelled", "escalated"],
+  claimed: ["completed", "failed", "ready", "cancelled", "escalated"],
   // A failed item is replaced or retried; it is never silently completed.
   failed: ["ready"],
+  /**
+   * Past its deadline and handed to an operator. Still actionable -- an
+   * escalation is a change of owner, not a failure, because the decision a
+   * person owes is still owed.
+   */
+  escalated: ["claimed", "ready", "completed", "failed", "cancelled"],
   completed: [],
   cancelled: [],
 });

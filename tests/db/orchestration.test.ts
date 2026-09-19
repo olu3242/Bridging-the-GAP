@@ -514,7 +514,9 @@ describe("the dispatcher drives a run", () => {
 
     // The learner acts, in their own session, through the governed command.
     const attemptId = await startBaseline(learner.id);
-    expect(await signal(learner.id, "diagnostic_attempt", attemptId)).toBe(1);
+    // One signal binds every step of the run that names this entity, not just
+    // the one whose turn it is.
+    expect(await signal(learner.id, "diagnostic_attempt", attemptId)).toBeGreaterThanOrEqual(1);
 
     // The signal bound the step to the attempt and queued it.
     expect((await items(instance))[0].subject_id).toBe(attemptId);
@@ -529,7 +531,7 @@ describe("the dispatcher drives a run", () => {
 
     const { attemptId: walked } = await walkBaseline(learner.id, { correctly: true });
     expect(walked).toBe(attemptId);
-    expect(await signal(learner.id, "diagnostic_attempt", attemptId)).toBe(1);
+    expect(await signal(learner.id, "diagnostic_attempt", attemptId)).toBeGreaterThanOrEqual(1);
 
     expect(await drainInstance(instance)).toBe("completed");
     expect((await items(instance)).map((i) => i.status)).toEqual([
@@ -575,16 +577,25 @@ describe("the dispatcher drives a run", () => {
     expect(Number(n)).toBeGreaterThan(0);
   });
 
-  it("leaves a person's work alone rather than polling it", async () => {
-    // human_review is not resolvable yet, so a definition using it cannot even
-    // start -- the fail-closed gate, asserted here so W14-E is a data change.
-    const rows = await sql<{ handler: string }>(
-      `select handler::text as handler from btg.workflow_handlers
-       where not is_resolvable order by handler::text`,
+  it("resolves a person's work by parking it, and refuses what no worker can do", async () => {
+    // W14-E flipped human_review and approval to resolvable: the dispatcher
+    // knows what to do with them, which is to park them for their owner. The
+    // classes with no worker behind them stay refused at start time.
+    const rows = await sql<{ handler: string; is_resolvable: boolean }>(
+      `select handler::text as handler, is_resolvable from btg.workflow_handlers
+       order by handler::text`,
     );
-    expect(rows.map((r) => r.handler)).toEqual(
-      expect.arrayContaining(["ai_worker", "approval", "external_call", "human_review"]),
-    );
+    const byHandler = Object.fromEntries(rows.map((r) => [r.handler, r.is_resolvable]));
+    expect(byHandler).toMatchObject({
+      noop: true,
+      await_domain_state: true,
+      domain_command: true,
+      timer: true,
+      human_review: true,
+      approval: true,
+      ai_worker: false,
+      external_call: false,
+    });
   });
 
   it("skips work whose instance has already settled", async () => {

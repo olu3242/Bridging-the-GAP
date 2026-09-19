@@ -11,6 +11,8 @@ import {
   recommendMentors,
 } from "@/server/services/mentorship-service";
 import { requestMentorshipAction, respondToMentorshipAction } from "@/server/actions/mentorship";
+import { getMyWorkQueue } from "@/server/services/workflow-service";
+import { WorkQueuePanel } from "@/components/app/work-queue-panel";
 import { DomainError } from "@/domain/shared/errors";
 
 export const metadata: Metadata = { title: "Mentorship" };
@@ -35,10 +37,11 @@ export default async function MentorshipPage() {
   }
 
   const supabase = await createSupabaseServerClient();
-  const [mentorships, cohorts, recommendations] = await Promise.all([
+  const [mentorships, cohorts, recommendations, workQueue] = await Promise.all([
     listMyMentorships(supabase, actor.profileId),
     listMyCohorts(supabase, actor.profileId),
     isLearner ? recommendMentors(supabase, 5) : Promise.resolve([]),
+    isMentor ? getMyWorkQueue(supabase, { workflow: "mentorship" }) : Promise.resolve([]),
   ]);
 
   const mine = mentorships.filter((m) => m.learner_profile_id === actor.profileId);
@@ -60,6 +63,16 @@ export default async function MentorshipPage() {
 
       {isLearner ? (
         <MentorRecommendations recommendations={recommendations} action={requestMentorshipAction} />
+      ) : null}
+
+      {isMentor ? (
+        <WorkQueuePanel
+          rows={workQueue}
+          title="Requests waiting on you"
+          description="Answer the request below, then mark the step done — it only records the answer you already gave."
+          emptyTitle="No requests waiting"
+          emptyDescription="A learner's request appears here as soon as it is made."
+        />
       ) : null}
 
       {isMentor ? (
