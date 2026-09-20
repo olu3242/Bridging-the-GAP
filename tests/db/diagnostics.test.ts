@@ -14,9 +14,13 @@ import {
 describe("competency graph", () => {
   it("seeds the catalogue", async () => {
     const [counts] = await sql<{ domains: string; competencies: string; levels: string; prereqs: string }>(`
-      select (select count(*)::text from public.competency_domains) as domains,
-             (select count(*)::text from public.competencies) as competencies,
-             (select count(*)::text from public.competency_levels) as levels,
+      with legacy as (select id from public.competencies where slug in
+        ('ai-concepts','ai-limitations','prompt-design','ai-tool-workflow',
+         'data-interpretation','data-quality','applied-ai-projects','ai-ethics'))
+      select (select count(*)::text from public.competency_domains where slug in
+               ('ai-foundations','prompting','data-literacy','applied-ai')) as domains,
+             (select count(*)::text from legacy) as competencies,
+             (select count(*)::text from public.competency_levels where competency_id in (select id from legacy)) as levels,
              (select count(*)::text from public.competency_prerequisites) as prereqs`);
     expect(counts).toEqual({ domains: "4", competencies: "8", levels: "40", prereqs: "6" });
   });

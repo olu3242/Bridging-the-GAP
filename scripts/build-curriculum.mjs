@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { buildCurriculum, buildSeed, validateCurriculum } from '../curriculum/build.mjs';
+import { buildCurriculum, buildSeed, buildRuntimeSeed, validateCurriculum } from '../curriculum/build.mjs';
 import { engineContract } from '../curriculum/source/engine.mjs';
 
 const {catalog,answerKeys}=buildCurriculum();
@@ -13,6 +13,7 @@ const files={
   'curriculum/generated/engine-contract.v1.json':json(engineContract),
   'curriculum/generated/coverage.v1.json':json(report),
   'supabase/seeds/curriculum-v1.sql':buildSeed(catalog),
+  'supabase/migrations/20260919000300_curriculum_contract_seed.sql':buildRuntimeSeed(catalog,answerKeys),
 };
 const check=process.argv.includes('--check');
 for(const [name,contents] of Object.entries(files)){

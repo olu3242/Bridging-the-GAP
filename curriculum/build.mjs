@@ -252,3 +252,28 @@ export function buildSeed(catalog) {
     lines.push(`insert into public.learning_activities(id,module_id,slug,title,kind,body,requires_output,estimated_minutes,sort_order) values (${quote(l.activity_id)},${quote(learningModule.database_id)},${quote(l.slug)},${quote(l.title)},${quote(l.practice.practice_type==='project'?'lab':'lesson')},${quote(body)},true,${l.estimated_minutes},${Number(l.lesson_id.slice(2))}) on conflict (module_id,slug) do nothing;`);}
   return lines.join('\n')+'\n';
 }
+
+export function buildRuntimeSeed(catalog,answerKeys) {
+  return buildSeed(catalog)+`
+-- Immutable v1 contract import. Future content versions need new migrations.
+insert into btg.curriculum_manifests(version,document) values (1,${quote(JSON.stringify(catalog))}::jsonb)
+on conflict (version) do nothing;
+insert into public.curriculum_lessons(activity_id,module_id,lesson_code,version,domain_code,course_code,contract)
+select (l->>'activity_id')::uuid,a.module_id,l->>'lesson_id',(l->>'version')::integer,l->>'domain',l->>'course',l
+from btg.curriculum_manifests m cross join lateral jsonb_array_elements(m.document->'lessons') l
+join public.learning_activities a on a.id=(l->>'activity_id')::uuid where m.version=1
+on conflict(activity_id) do nothing;
+insert into btg.curriculum_assessment_keys(activity_id,definition)
+select l.activity_id,k from jsonb_array_elements(${quote(JSON.stringify(answerKeys))}::jsonb) k
+join public.curriculum_lessons l on l.lesson_code=k->>'lesson_id' and l.version=(k->>'version')::integer
+on conflict(activity_id) do nothing;
+insert into public.curriculum_videos(video_id,source_url,embed_url,candidate_title)
+select v->>'video_id',v->>'source_url',v->>'embed_url',v->>'candidate_title'
+from btg.curriculum_manifests m cross join lateral jsonb_array_elements(m.document->'videos') v where m.version=1
+on conflict(video_id) do nothing;
+insert into public.curriculum_lesson_video(activity_id,video_id,required,threshold)
+select activity_id,contract#>>'{video,video_id}',(contract#>>'{video,video_required}')::boolean,
+coalesce((contract#>>'{video,watch_threshold}')::numeric,0.85) from public.curriculum_lessons where version=1
+on conflict(activity_id) do nothing;
+`;
+}

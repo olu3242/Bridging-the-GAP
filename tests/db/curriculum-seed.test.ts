@@ -12,7 +12,7 @@ describe("canonical curriculum draft seed", () => {
     const client = await pool.connect();
     try {
       await client.query("begin");
-      const { rows: legacy } = await client.query("select * from learning_activities order by id");
+      const { rows: legacy } = await client.query("select * from learning_activities where slug not like 'curriculum-v1-%' order by id");
       const { rows: progress } = await client.query("select * from learner_module_progress order by profile_id,module_id");
       await client.query(seed);
       const first = await client.query("select id,module_id,slug,body from learning_activities where slug like 'curriculum-v1-%' order by id");

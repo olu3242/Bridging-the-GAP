@@ -66,3 +66,33 @@ The exact 112-lesson source is compiled into complete machine-readable contracts
 protected assessments, a coverage report and a rerunnable draft SQL seed.
 See `curriculum/README.md` for the evidence boundary and Batch 1 handoff.
 No new curriculum is published and no deployed migration history was modified.
+
+## Batch 1 — persisted contracts and attempt foundation (in progress)
+
+Additive migrations 002–005 persist 112 draft contracts across 11 canonical
+domains, protected assessment keys, eight candidate video assets, 112 video
+requirement mappings, learner attempts, bounded playback receipts, and missing
+competency proficiency descriptors. The historical applied-ai domain remains;
+it is not counted as a twelfth canonical curriculum domain. All 24 competencies
+now resolve to five database proficiency levels; existing descriptors survive.
+
+The catalog uses RLS-scoped database search, counts and pagination. Lesson pages
+render instructional contracts, source links, candidate embeds, saved practice,
+checkpoint submission, review feedback and remediation acknowledgment. Grading
+requires an independent reviewer through database commands. Learners cannot
+write grades, playback totals, publication state or private answer keys.
+
+Validation: the requested four targeted files passed 17/17. Full domain/database
+regression passed 451/451 before the additional attempt lifecycle test; the
+five-test runtime suite then passed, including persisted drafts, idempotent
+resume, independent grading, required remediation and retained retry history.
+Typecheck, lint and production build passed after the lesson form was added.
+The lifecycle test uses a rollback-only publication fixture; it does not verify
+real video playback or certify a published learner journey.
+
+Remaining: reviewer UI, browser playback-to-receipt wiring, canonical project
+evidence bridge, downstream course/credential/career integration, tutor context,
+and authenticated browser persistence journey. Project lesson completion is
+explicitly blocked until the evidence bridge exists. Video verification remains
+0/8 candidate assets; 101 required lesson videos are pending, including 88
+without candidate mappings. No canonical lesson is published. Batch 1 is not PASS.
