@@ -9,7 +9,7 @@ import { idleState, type ActionState } from "@/server/actions/action-result";
 
 type Action = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
-export function JoinForm({ action }: { action: Action }) {
+export function JoinForm({ action, intent }: { action: Action; intent?: string }) {
   const [state, formAction] = useActionState(action, idleState);
 
   return (
@@ -22,6 +22,7 @@ export function JoinForm({ action }: { action: Action }) {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4" noValidate>
+          {intent ? <input type="hidden" name="intent" value={intent} /> : null}
           {state.status === "error" && !state.fieldErrors ? (
             <Alert tone="error">{state.message}</Alert>
           ) : null}

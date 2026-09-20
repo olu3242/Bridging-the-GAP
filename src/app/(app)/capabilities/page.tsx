@@ -1,0 +1,9 @@
+import type {Metadata} from "next";
+import {Network} from "lucide-react";
+import {requireActor} from "@/server/services/actor";
+import {createSupabaseServerClient} from "@/lib/supabase/server";
+import {getMyCapabilityGraph} from "@/server/services/flywheel-service";
+import {Card,CardContent,CardDescription,CardHeader,CardTitle} from "@/components/ui/card";
+import {Badge,EmptyState} from "@/components/ui/feedback";
+export const metadata:Metadata={title:"Capability evidence"};
+export default async function CapabilitiesPage(){await requireActor();const supabase=await createSupabaseServerClient();const facts=await getMyCapabilityGraph(supabase);return <div className="space-y-5"><div><h1 className="text-2xl font-semibold">Capability evidence</h1><p className="mt-1 text-sm text-ink-muted">A governed projection of canonical verified skills. The graph does not create or replace evidence.</p></div><Card><CardHeader><CardTitle className="flex items-center gap-2"><Network className="size-4 text-accent"/>Verified capability paths</CardTitle><CardDescription>Every result includes its source evidence ID and freshness.</CardDescription></CardHeader><CardContent>{facts.length===0?<EmptyState icon={Network} title="No verified capability yet" description="An independently accepted project will establish the first evidence path."/>:<ul className="space-y-3">{facts.map(f=><li key={`${f.competency_id}-${f.evidence_id}`} className="rounded-xl border border-white/8 p-4"><div className="flex justify-between"><span className="font-medium">{f.competency_name}</span><Badge tone="success">Level {f.verified_level}</Badge></div><p className="mt-1 break-all text-xs text-ink-subtle">Evidence {f.evidence_id} · verified {new Date(f.verified_at).toLocaleDateString()}</p></li>)}</ul>}</CardContent></Card></div>}
