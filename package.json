@@ -15,7 +15,10 @@
     "db:local:up": "bash scripts/local-db.sh up",
     "db:local:down": "bash scripts/local-db.sh down",
     "db:local:reset": "bash scripts/local-db.sh reset",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "curriculum:build": "node scripts/build-curriculum.mjs",
+    "curriculum:check": "node scripts/build-curriculum.mjs --check",
+    "curriculum:videos": "node scripts/verify-curriculum-videos.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

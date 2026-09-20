@@ -41,8 +41,9 @@ and must now be materialized: 100 original lessons plus D11 Vibe Coding (12).
 Preserve existing IDs and progress. New curriculum requires deterministic seeds,
 explicit versions/statuses and real lesson-specific instruction and practice.
 Unverified videos remain `pending`; never invent metadata or imply availability.
-Detailed D01–D10 titles were not supplied; any new taxonomy is an implementation
-proposal, not a recovered copy of the prior product conversation.
+The subsequent Batch 0 attachment supplied the exact D01–D11 allocation and
+all 112 IDs/titles. It supersedes the provisional taxonomy considered during
+reconnaissance. The authoritative design now lives in `curriculum/`.
 
 ## C01 — replace generic reference activities
 
@@ -54,3 +55,14 @@ specific artifact, and each reflection poses a distinct problem. Reflections
 remain ungraded and cannot substitute for reviewed skill evidence.
 
 This batch does not claim the 112-lesson curriculum or video delivery is complete.
+
+Validation: 432 domain/database tests passed; lint, typecheck and production
+build passed. Public browser regression: 14 passed, 7 authenticated tests skipped
+without Supabase browser configuration. Commit: `70019ca`.
+
+## Batch 0 — curriculum design and seed contract
+
+The exact 112-lesson source is compiled into complete machine-readable contracts,
+protected assessments, a coverage report and a rerunnable draft SQL seed.
+See `curriculum/README.md` for the evidence boundary and Batch 1 handoff.
+No new curriculum is published and no deployed migration history was modified.
