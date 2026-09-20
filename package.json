@@ -18,7 +18,9 @@
     "e2e": "playwright test",
     "curriculum:build": "node scripts/build-curriculum.mjs",
     "curriculum:check": "node scripts/build-curriculum.mjs --check",
-    "curriculum:videos": "node scripts/verify-curriculum-videos.mjs"
+    "curriculum:videos": "node scripts/verify-curriculum-videos.mjs",
+    "visuals:build": "node scripts/build-curriculum-visuals.mjs",
+    "visuals:check": "node scripts/build-curriculum-visuals.mjs --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

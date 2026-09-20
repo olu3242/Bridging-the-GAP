@@ -48,6 +48,19 @@ describe("persisted canonical curriculum", () => {
       expect(retry.attempt_number).toBe(2);
       expect(retry.id).not.toBe(first.id);
       expect((await c.query("select status from curriculum_attempts where id=$1", [first.id])).rows[0].status).toBe("evaluated");
+      await c.query("select save_curriculum_attempt($1,$2,$3,true)", [retry.id, output + " Revised with recorded checks.", key.definition.answers[0].correct_option]);
+      await become(reviewer.id);
+      await c.query("select claim_curriculum_attempt($1)", [retry.id]);
+      const passing = Object.fromEntries(Object.keys(scores).map(id => [id, 4]));
+      await c.query("select evaluate_curriculum_attempt($1,$2,$3)", [retry.id, passing, "Verified the revised artifact against every required rubric criterion."]);
+      await become(learner.id);
+      expect((await c.query("select passed from curriculum_attempts where id=$1", [retry.id])).rows[0].passed).toBe(true);
+      await rejects("select complete_curriculum_lesson($1)", [lesson.activity_id], "verified video threshold not met");
+      await c.query("select record_curriculum_engagement($1,'viewed','')", [lesson.activity_id]);
+      await c.query("select record_curriculum_engagement($1,'viewed','')", [lesson.activity_id]);
+      expect((await c.query("select * from curriculum_engagement where activity_id=$1", [lesson.activity_id])).rows).toHaveLength(1);
+      const progress = (await c.query("select curriculum_progress($1) as value", [lesson.activity_id])).rows[0].value;
+      expect(progress).toMatchObject({ viewed: true, completed: false, threshold_reached: false });
     } finally { await c.query("rollback"); c.release(); }
   });
   it("resolves all canonical competencies to five levels without orphan lesson mappings", async () => {

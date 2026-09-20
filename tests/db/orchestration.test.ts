@@ -882,13 +882,15 @@ describe("crash and replay", () => {
     const [first, second] = await Promise.all([
       asServiceRole(async (client) => {
         const r = await client.query(
-          "select count(*)::int as n from btg.claim_work('workflow', 'worker-a', 60, 50)",
+          "select count(*)::int as n from btg.claim_workflow_items('worker-a', 60, 50, $1)",
+          [instance],
         );
         return r.rows[0].n as number;
       }),
       asServiceRole(async (client) => {
         const r = await client.query(
-          "select count(*)::int as n from btg.claim_work('workflow', 'worker-b', 60, 50)",
+          "select count(*)::int as n from btg.claim_workflow_items('worker-b', 60, 50, $1)",
+          [instance],
         );
         return r.rows[0].n as number;
       }),
@@ -901,7 +903,7 @@ describe("crash and replay", () => {
     );
     expect(["worker-a", "worker-b"]).toContain(claimed_by);
     // The row went to one worker, never both.
-    expect(first + second).toBeGreaterThanOrEqual(1);
+    expect(first + second).toBe(1);
     const [{ n }] = await sql<{ n: string }>(
       `select count(*)::text as n from btg.work_queue
        where queue = 'workflow' and payload->>'work_item_id' = $1 and status = 'claimed'`,

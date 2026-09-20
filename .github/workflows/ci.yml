@@ -42,6 +42,9 @@ jobs:
       - name: Validate canonical curriculum artifacts
         run: npm run curriculum:check
 
+      - name: Validate curriculum visual artifacts
+        run: npm run visuals:check
+
       - name: Apply migrations to the certification database
         run: |
           psql "$BTG_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -q -f tests/db/bootstrap.sql

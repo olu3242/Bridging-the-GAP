@@ -41,7 +41,8 @@ export function LessonAttemptForm({ activityId, attempt }: { activityId: string;
       {attempt?.status === "evaluated" && !attempt.passed ? attempt.remediation_acknowledged_at ?
         <button className={button} name="operation" value="start" disabled={pending}>Start revised attempt</button> :
         <button className={button} name="operation" value="remediate" disabled={pending}>I reviewed the feedback and remediation</button> : null}
-      {attempt?.passed ? <p>Checkpoint passed. Lesson completion still requires its video and evidence requirements.</p> : null}
+      {attempt?.passed ? <><p>Checkpoint passed. Lesson completion still requires its video and evidence requirements.</p>
+        <button className={button} name="operation" value="complete" disabled={pending}>Check requirements and complete lesson</button></> : null}
       {state.message ? <p role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null}
     </form>
   </section>;

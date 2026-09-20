@@ -11,6 +11,7 @@ import { getMyWorkQueue } from "@/server/services/workflow-service";
 import { WorkQueuePanel } from "@/components/app/work-queue-panel";
 import { claimReviewAction } from "@/server/actions/review";
 import { formatRelative } from "@/lib/utils";
+import { CurriculumReviewQueue } from "@/components/app/curriculum-review-queue";
 
 export const metadata: Metadata = { title: "Review queue" };
 
@@ -57,6 +58,7 @@ export default async function ReviewQueuePage({
         </Alert>
       ) : null}
 
+      <CurriculumReviewQueue supabase={supabase} profileId={actor.profileId} />
       <WorkQueuePanel
         rows={workQueue}
         title="Assigned to you as a reviewer"

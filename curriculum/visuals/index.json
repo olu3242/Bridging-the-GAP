@@ -1,0 +1,450 @@
+[
+  {
+    "lesson_id": "AF01",
+    "manifest_path": "curriculum/assets/visuals/AF/AF01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF02",
+    "manifest_path": "curriculum/assets/visuals/AF/AF02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF03",
+    "manifest_path": "curriculum/assets/visuals/AF/AF03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF04",
+    "manifest_path": "curriculum/assets/visuals/AF/AF04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF05",
+    "manifest_path": "curriculum/assets/visuals/AF/AF05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF06",
+    "manifest_path": "curriculum/assets/visuals/AF/AF06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF07",
+    "manifest_path": "curriculum/assets/visuals/AF/AF07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF08",
+    "manifest_path": "curriculum/assets/visuals/AF/AF08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF09",
+    "manifest_path": "curriculum/assets/visuals/AF/AF09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF10",
+    "manifest_path": "curriculum/assets/visuals/AF/AF10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF11",
+    "manifest_path": "curriculum/assets/visuals/AF/AF11/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AF12",
+    "manifest_path": "curriculum/assets/visuals/AF/AF12/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP01",
+    "manifest_path": "curriculum/assets/visuals/AP/AP01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP02",
+    "manifest_path": "curriculum/assets/visuals/AP/AP02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP03",
+    "manifest_path": "curriculum/assets/visuals/AP/AP03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP04",
+    "manifest_path": "curriculum/assets/visuals/AP/AP04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP05",
+    "manifest_path": "curriculum/assets/visuals/AP/AP05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP06",
+    "manifest_path": "curriculum/assets/visuals/AP/AP06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP07",
+    "manifest_path": "curriculum/assets/visuals/AP/AP07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP08",
+    "manifest_path": "curriculum/assets/visuals/AP/AP08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP09",
+    "manifest_path": "curriculum/assets/visuals/AP/AP09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AP10",
+    "manifest_path": "curriculum/assets/visuals/AP/AP10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC01",
+    "manifest_path": "curriculum/assets/visuals/PC/PC01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC02",
+    "manifest_path": "curriculum/assets/visuals/PC/PC02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC03",
+    "manifest_path": "curriculum/assets/visuals/PC/PC03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC04",
+    "manifest_path": "curriculum/assets/visuals/PC/PC04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC05",
+    "manifest_path": "curriculum/assets/visuals/PC/PC05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC06",
+    "manifest_path": "curriculum/assets/visuals/PC/PC06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC07",
+    "manifest_path": "curriculum/assets/visuals/PC/PC07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC08",
+    "manifest_path": "curriculum/assets/visuals/PC/PC08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC09",
+    "manifest_path": "curriculum/assets/visuals/PC/PC09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "PC10",
+    "manifest_path": "curriculum/assets/visuals/PC/PC10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA01",
+    "manifest_path": "curriculum/assets/visuals/AA/AA01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA02",
+    "manifest_path": "curriculum/assets/visuals/AA/AA02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA03",
+    "manifest_path": "curriculum/assets/visuals/AA/AA03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA04",
+    "manifest_path": "curriculum/assets/visuals/AA/AA04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA05",
+    "manifest_path": "curriculum/assets/visuals/AA/AA05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA06",
+    "manifest_path": "curriculum/assets/visuals/AA/AA06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA07",
+    "manifest_path": "curriculum/assets/visuals/AA/AA07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA08",
+    "manifest_path": "curriculum/assets/visuals/AA/AA08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA09",
+    "manifest_path": "curriculum/assets/visuals/AA/AA09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "AA10",
+    "manifest_path": "curriculum/assets/visuals/AA/AA10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE01",
+    "manifest_path": "curriculum/assets/visuals/SE/SE01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE02",
+    "manifest_path": "curriculum/assets/visuals/SE/SE02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE03",
+    "manifest_path": "curriculum/assets/visuals/SE/SE03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE04",
+    "manifest_path": "curriculum/assets/visuals/SE/SE04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE05",
+    "manifest_path": "curriculum/assets/visuals/SE/SE05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE06",
+    "manifest_path": "curriculum/assets/visuals/SE/SE06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE07",
+    "manifest_path": "curriculum/assets/visuals/SE/SE07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE08",
+    "manifest_path": "curriculum/assets/visuals/SE/SE08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE09",
+    "manifest_path": "curriculum/assets/visuals/SE/SE09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE10",
+    "manifest_path": "curriculum/assets/visuals/SE/SE10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE11",
+    "manifest_path": "curriculum/assets/visuals/SE/SE11/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE12",
+    "manifest_path": "curriculum/assets/visuals/SE/SE12/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE13",
+    "manifest_path": "curriculum/assets/visuals/SE/SE13/manifest.v1.json"
+  },
+  {
+    "lesson_id": "SE14",
+    "manifest_path": "curriculum/assets/visuals/SE/SE14/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA01",
+    "manifest_path": "curriculum/assets/visuals/DA/DA01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA02",
+    "manifest_path": "curriculum/assets/visuals/DA/DA02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA03",
+    "manifest_path": "curriculum/assets/visuals/DA/DA03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA04",
+    "manifest_path": "curriculum/assets/visuals/DA/DA04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA05",
+    "manifest_path": "curriculum/assets/visuals/DA/DA05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA06",
+    "manifest_path": "curriculum/assets/visuals/DA/DA06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA07",
+    "manifest_path": "curriculum/assets/visuals/DA/DA07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA08",
+    "manifest_path": "curriculum/assets/visuals/DA/DA08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA09",
+    "manifest_path": "curriculum/assets/visuals/DA/DA09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "DA10",
+    "manifest_path": "curriculum/assets/visuals/DA/DA10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL01",
+    "manifest_path": "curriculum/assets/visuals/CL/CL01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL02",
+    "manifest_path": "curriculum/assets/visuals/CL/CL02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL03",
+    "manifest_path": "curriculum/assets/visuals/CL/CL03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL04",
+    "manifest_path": "curriculum/assets/visuals/CL/CL04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL05",
+    "manifest_path": "curriculum/assets/visuals/CL/CL05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL06",
+    "manifest_path": "curriculum/assets/visuals/CL/CL06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL07",
+    "manifest_path": "curriculum/assets/visuals/CL/CL07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CL08",
+    "manifest_path": "curriculum/assets/visuals/CL/CL08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS01",
+    "manifest_path": "curriculum/assets/visuals/CS/CS01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS02",
+    "manifest_path": "curriculum/assets/visuals/CS/CS02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS03",
+    "manifest_path": "curriculum/assets/visuals/CS/CS03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS04",
+    "manifest_path": "curriculum/assets/visuals/CS/CS04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS05",
+    "manifest_path": "curriculum/assets/visuals/CS/CS05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS06",
+    "manifest_path": "curriculum/assets/visuals/CS/CS06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS07",
+    "manifest_path": "curriculum/assets/visuals/CS/CS07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS08",
+    "manifest_path": "curriculum/assets/visuals/CS/CS08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS09",
+    "manifest_path": "curriculum/assets/visuals/CS/CS09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CS10",
+    "manifest_path": "curriculum/assets/visuals/CS/CS10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP01",
+    "manifest_path": "curriculum/assets/visuals/CP/CP01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP02",
+    "manifest_path": "curriculum/assets/visuals/CP/CP02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP03",
+    "manifest_path": "curriculum/assets/visuals/CP/CP03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP04",
+    "manifest_path": "curriculum/assets/visuals/CP/CP04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP05",
+    "manifest_path": "curriculum/assets/visuals/CP/CP05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP06",
+    "manifest_path": "curriculum/assets/visuals/CP/CP06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP07",
+    "manifest_path": "curriculum/assets/visuals/CP/CP07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "CP08",
+    "manifest_path": "curriculum/assets/visuals/CP/CP08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI01",
+    "manifest_path": "curriculum/assets/visuals/EI/EI01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI02",
+    "manifest_path": "curriculum/assets/visuals/EI/EI02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI03",
+    "manifest_path": "curriculum/assets/visuals/EI/EI03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI04",
+    "manifest_path": "curriculum/assets/visuals/EI/EI04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI05",
+    "manifest_path": "curriculum/assets/visuals/EI/EI05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI06",
+    "manifest_path": "curriculum/assets/visuals/EI/EI06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI07",
+    "manifest_path": "curriculum/assets/visuals/EI/EI07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "EI08",
+    "manifest_path": "curriculum/assets/visuals/EI/EI08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC01",
+    "manifest_path": "curriculum/assets/visuals/VC/VC01/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC02",
+    "manifest_path": "curriculum/assets/visuals/VC/VC02/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC03",
+    "manifest_path": "curriculum/assets/visuals/VC/VC03/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC04",
+    "manifest_path": "curriculum/assets/visuals/VC/VC04/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC05",
+    "manifest_path": "curriculum/assets/visuals/VC/VC05/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC06",
+    "manifest_path": "curriculum/assets/visuals/VC/VC06/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC07",
+    "manifest_path": "curriculum/assets/visuals/VC/VC07/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC08",
+    "manifest_path": "curriculum/assets/visuals/VC/VC08/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC09",
+    "manifest_path": "curriculum/assets/visuals/VC/VC09/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC10",
+    "manifest_path": "curriculum/assets/visuals/VC/VC10/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC11",
+    "manifest_path": "curriculum/assets/visuals/VC/VC11/manifest.v1.json"
+  },
+  {
+    "lesson_id": "VC12",
+    "manifest_path": "curriculum/assets/visuals/VC/VC12/manifest.v1.json"
+  }
+]
