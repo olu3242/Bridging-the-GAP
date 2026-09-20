@@ -210,7 +210,7 @@ test.describe("route regression", () => {
   // session to read, so it cannot decide anything.
   test("protected routes redirect an anonymous visitor to sign in", async ({ page }) => {
     test.skip(!supabaseConfigured, "The session proxy needs a configured Supabase project.");
-    for (const route of ["/dashboard", "/onboarding", "/organizations", "/outcomes"]) {
+    for (const route of ["/dashboard", "/onboarding", "/organizations", "/outcomes", "/access", "/contributions", "/challenges", "/capabilities", "/governance", "/intelligence"]) {
       await page.goto(route);
       await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=%2F${route.slice(1)}`));
     }

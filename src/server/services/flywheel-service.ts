@@ -9,6 +9,9 @@ export interface ContributionTask { id:string; title:string; instructions:string
 export interface ImpactEvent { id:string; event_type:string; source_type:string; source_id:string; occurred_at:string }
 export interface Challenge { id:string; status:string; problem_statement:string; requirements:Record<string,unknown>; project_brief_id:string }
 export interface CapabilityFact { profile_id:string; competency_id:string; competency_name:string; verified_level:number; evidence_id:string; verified_at:string; freshness:string }
+export interface ContributionEvidence { id:string; summary:string; status:string; submitted_at:string }
+export interface PendingContribution { id:string; contributor_id:string; task_id:string; submitted_at:string; provenance:Record<string,unknown> }
+export interface IntelligenceMetric { metric_key:string; metric_value:number; definition:string; source_relations:string[]; scope:Record<string,string>; time_window:string; freshness:string }
 
 export async function getAccessWorkspace(supabase:SupabaseClient, profileId:string) {
   const [programs,assessments,seats,waitlist] = await Promise.all([
@@ -35,18 +38,39 @@ export async function activateSeat(supabase:SupabaseClient,seatId:string) {
   if(error) throw fromPostgresError(error,"We could not activate that seat.");
 }
 export async function getContributionWorkspace(supabase:SupabaseClient,profileId:string) {
-  const [available,mine,impact]=await Promise.all([
+  const [available,mine,impact,evidence]=await Promise.all([
     supabase.from("contribution_tasks").select("id,title,instructions,status,due_at,assignee_id").eq("status","available").order("created_at"),
     supabase.from("contribution_tasks").select("id,title,instructions,status,due_at,assignee_id").eq("assignee_id",profileId).order("updated_at",{ascending:false}),
     supabase.from("impact_events").select("id,event_type,source_type,source_id,occurred_at").eq("profile_id",profileId).order("occurred_at",{ascending:false}).limit(20),
+    supabase.from("evidence").select("id,summary,status,submitted_at").eq("profile_id",profileId).neq("status","draft").order("submitted_at",{ascending:false}),
   ]);
-  const error=available.error??mine.error??impact.error;
+  const error=available.error??mine.error??impact.error??evidence.error;
   if(error) throw fromPostgresError(error,"We could not load contribution work.");
-  return {available:(available.data??[]) as ContributionTask[],mine:(mine.data??[]) as ContributionTask[],impact:(impact.data??[]) as ImpactEvent[]};
+  return {available:(available.data??[]) as ContributionTask[],mine:(mine.data??[]) as ContributionTask[],impact:(impact.data??[]) as ImpactEvent[],evidence:(evidence.data??[]) as ContributionEvidence[]};
 }
 export async function claimContributionTask(supabase:SupabaseClient,taskId:string) {
   const {error}=await supabase.rpc("claim_contribution_task",{p_task_id:taskId});
   if(error) throw fromPostgresError(error,"That task is no longer available.");
+}
+export async function submitContribution(supabase:SupabaseClient,input:{taskId:string;evidenceId:string;provenance:Record<string,unknown>;contentHash:string}) {
+ const {error}=await supabase.rpc("submit_contribution",{p_task_id:input.taskId,p_evidence_id:input.evidenceId,p_provenance:input.provenance,p_content_hash:input.contentHash});
+ if(error) throw fromPostgresError(error,"We could not submit that contribution.");
+}
+export async function getGovernanceWorkspace(supabase:SupabaseClient,organizationIds:string[]) {
+ if(organizationIds.length===0) return {programs:[],contributionPrograms:[],pending:[],commitments:[]};
+ const [programs,contributionPrograms,pending,commitments]=await Promise.all([
+  supabase.from("funding_programs").select("id,organization_id,name,currency,status,policy_version").in("organization_id",organizationIds),
+  supabase.from("contribution_programs").select("id,organization_id,name,kind,status").in("organization_id",organizationIds),
+  supabase.from("contribution_submissions").select("id,contributor_id,task_id,submitted_at,provenance").eq("status","submitted").order("submitted_at"),
+  supabase.from("funding_commitments").select("id,program_id,currency,amount_minor,status,provider_reference").eq("status","pending"),
+ ]);
+ const error=programs.error??contributionPrograms.error??pending.error??commitments.error;
+ if(error) throw fromPostgresError(error,"We could not load the governance workspace.");
+ return {programs:programs.data??[],contributionPrograms:contributionPrograms.data??[],pending:(pending.data??[]) as PendingContribution[],commitments:commitments.data??[]};
+}
+export async function getInstitutionIntelligence(supabase:SupabaseClient,organizationId:string):Promise<IntelligenceMetric[]> {
+ const {data,error}=await supabase.rpc("get_institution_intelligence",{p_organization_id:organizationId});
+ if(error) throw fromPostgresError(error,"Intelligence is unavailable until the privacy threshold is met."); return (data??[]) as IntelligenceMetric[];
 }
 export async function listChallenges(supabase:SupabaseClient):Promise<Challenge[]> {
   const {data,error}=await supabase.from("challenges").select("id,status,problem_statement,requirements,project_brief_id").in("status",["published","accepting"]).order("created_at");

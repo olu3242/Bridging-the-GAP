@@ -4,6 +4,8 @@ import {
   Database,
   Lightbulb,
   Network,
+  Landmark,
+  BarChart3,
   Building2,
   Bot,
   Briefcase,
@@ -47,4 +49,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/outcomes", label: "Outcomes", icon: TrendingUp, capability: "outcomes.read_own" },
   { href: "/review", label: "Review queue", icon: ClipboardCheck, capability: "review.decide" },
   { href: "/organizations", label: "Organizations", icon: Building2, capability: "organization.create" },
+  { href: "/governance", label: "Flywheel governance", icon: Landmark, capability: "organization.manage" },
+  { href: "/intelligence", label: "Intelligence", icon: BarChart3, capability: "intelligence.read_org" },
 ];

@@ -20,9 +20,17 @@ async function fundingFixture(label:string){
 describe("W15 funding invariants",()=>{
   it("serializes allocation and never lets a pool go negative",async()=>{
     const f=await fundingFixture("capacity");
-    await asUser(f.admin.id,c=>c.query("select public.allocate_funded_seat($1,$2,8000,'USD','first')",[f.wait.id,f.pool.id]));
-    const [other]=await sql<{id:string}>("insert into public.funding_waitlist(program_id,profile_id,assessment_id,status) select program_id,gen_random_uuid(),assessment_id,'waitlisted' from public.funding_waitlist where false returning id");
-    expect(other).toBeUndefined();
+    const learner2=await createUser("capacity-learner-2");
+    const [assessment2]=await sql<{id:string}>(`insert into eligibility_assessments(program_id,profile_id,policy_version,evidence,decision)
+      values($1,$2,'v1','{}','eligible') returning id`,[f.program.id,learner2.id]);
+    const [wait2]=await sql<{id:string}>(`insert into funding_waitlist(program_id,profile_id,assessment_id,status)
+      values($1,$2,$3,'waitlisted') returning id`,[f.program.id,learner2.id,assessment2.id]);
+    const attempts=await Promise.allSettled([
+      asUser(f.admin.id,c=>c.query("select public.allocate_funded_seat($1,$2,8000,'USD','race-first')",[f.wait.id,f.pool.id])),
+      asUser(f.admin.id,c=>c.query("select public.allocate_funded_seat($1,$2,8000,'USD','race-second')",[wait2.id,f.pool.id])),
+    ]);
+    expect(attempts.filter(a=>a.status==="fulfilled")).toHaveLength(1);
+    expect(attempts.filter(a=>a.status==="rejected")).toHaveLength(1);
     const [balance]=await sql<{available:string}>("select (funded_minor-reserved_minor-spent_minor)::text available from funding_pools where id=$1",[f.pool.id]);
     expect(Number(balance.available)).toBe(2000);
     const rejection=await expectRejection(sql("update funding_pools set reserved_minor=11000 where id=$1",[f.pool.id]));
@@ -59,10 +67,21 @@ describe("W16-W20 trust invariants",()=>{
 
   it("rejects self-verification structurally",async()=>{
     const user=await createUser("self-review");
+    const org=await createOrganizationAs(user.id,"Self Review Org","employer");
+    const [program]=await sql<{id:string}>(`insert into contribution_programs(organization_id,name,kind,status)
+      values($1,'Review program','data','published') returning id`,[org.id]);
+    const [task]=await sql<{id:string}>(`insert into contribution_tasks(program_id,title,instructions,status,assignee_id)
+      values($1,'Review task','Instructions long enough to be useful','submitted',$2) returning id`,[program.id,user.id]);
     const rejection=await expectRejection(sql(`insert into contribution_submissions
       (task_id,contributor_id,provenance,content_hash,status,reviewed_by)
-      values(gen_random_uuid(),$1,'{}','x','accepted',$1)`,[user.id]));
-    expect(rejection.code).toBeDefined();
+      values($1,$2,'{}','self-review-hash','accepted',$2)`,[task.id,user.id]));
+    expect(rejection.code).toBe("23514");
+  });
+
+  it("suppresses institutional intelligence below five members",async()=>{
+    const admin=await createUser("small-intelligence"); const org=await createOrganizationAs(admin.id,"Small Intelligence Org");
+    const rejection=await expectRejection(asUser(admin.id,c=>c.query("select * from get_institution_intelligence($1)",[org.id])));
+    expect(rejection.message).toContain("at least 5 members");
   });
 
   it("does not grant authenticated direct writes to canonical W15-W20 tables",async()=>{

@@ -33,6 +33,10 @@ describe("capability checks", () => {
     expect(can(a, "reviewer.queue.view")).toBe(false);
     expect(can(a, "platform.govern")).toBe(false);
     expect(can(a, "audit.read_all")).toBe(false);
+    expect(can(a, "funding.manage")).toBe(false);
+    expect(can(a, "contribution.manage")).toBe(false);
+    expect(can(a, "challenge.manage")).toBe(false);
+    expect(can(a, "intelligence.read_org")).toBe(false);
   });
 
   it("scopes an organization persona to its own organization", () => {
@@ -49,6 +53,18 @@ describe("capability checks", () => {
     expect(can(a, "membership.manage", { organizationId: ORG_A })).toBe(true);
     // The same persona must not leak into another tenant.
     expect(can(a, "membership.manage", { organizationId: ORG_B })).toBe(false);
+    expect(can(a, "contribution.manage", { organizationId: ORG_A })).toBe(true);
+    expect(can(a, "contribution.manage", { organizationId: ORG_B })).toBe(false);
+  });
+
+  it("separates sponsor funding authority from employer work authority", () => {
+    const sponsor = actor({ memberships: [{ organizationId: ORG_A, organizationName: "Fund A", organizationSlug: "fund-a", persona: "sponsor" }] });
+    const employer = actor({ memberships: [{ organizationId: ORG_B, organizationName: "Work B", organizationSlug: "work-b", persona: "employer" }] });
+    expect(can(sponsor, "funding.manage", { organizationId: ORG_A })).toBe(true);
+    expect(can(sponsor, "contribution.manage", { organizationId: ORG_A })).toBe(false);
+    expect(can(employer, "contribution.manage", { organizationId: ORG_B })).toBe(true);
+    expect(can(employer, "challenge.manage", { organizationId: ORG_B })).toBe(true);
+    expect(can(employer, "funding.manage", { organizationId: ORG_B })).toBe(false);
   });
 
   it("keeps self-service capabilities valid inside an organization context", () => {
