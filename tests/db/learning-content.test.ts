@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { asUser, createUser, pool } from "./helpers";
 
-const migration = readFileSync("supabase/migrations/20260919000100_learning_content.sql", "utf8");
+const migration = readFileSync("supabase/migrations/20260921190001_learning_content.sql", "utf8");
 
 describe("reference learning content upgrade", () => {
   it("preserves operator-authored content and activity identities on replay", async () => {

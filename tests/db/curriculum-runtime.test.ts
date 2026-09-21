@@ -81,7 +81,7 @@ describe("persisted canonical curriculum", () => {
     try {
       await client.query("begin");
       const before = await client.query("select * from competency_levels order by competency_id,level");
-      await client.query(readFileSync("supabase/migrations/20260919000500_curriculum_proficiency.sql", "utf8"));
+      await client.query(readFileSync("supabase/migrations/20260921190005_curriculum_proficiency.sql", "utf8"));
       expect((await client.query("select * from competency_levels order by competency_id,level")).rows).toEqual(before.rows);
     } finally { await client.query("rollback"); client.release(); }
   });
