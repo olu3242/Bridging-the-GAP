@@ -13,7 +13,7 @@ const files={
   'curriculum/generated/engine-contract.v1.json':json(engineContract),
   'curriculum/generated/coverage.v1.json':json(report),
   'supabase/seeds/curriculum-v1.sql':buildSeed(catalog),
-  'supabase/migrations/20260919000300_curriculum_contract_seed.sql':buildRuntimeSeed(catalog,answerKeys),
+  'supabase/migrations/20260921190003_curriculum_contract_seed.sql':buildRuntimeSeed(catalog,answerKeys),
 };
 const check=process.argv.includes('--check');
 for(const [name,contents] of Object.entries(files)){
