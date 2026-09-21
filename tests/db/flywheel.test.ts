@@ -37,16 +37,40 @@ describe("W15 funding invariants",()=>{
     expect(rejection.code).toBe("23514");
   });
 
-  it("records confirmed funding idempotently in exact minor units",async()=>{
+  it("records funding commitments idempotently and blocks forged provider confirmation",async()=>{
     const f=await fundingFixture("idempotent");
+    const key=`same-key-${f.program.id}`;
+    const forgedKey=`forged-key-${f.program.id}`;
+
     const ids=await asUser(f.learner.id,async c=>{
-      const a=await c.query("select public.record_funding($1,'USD',2500,'same-key','test','provider-1',true) id",[f.program.id]);
-      const b=await c.query("select public.record_funding($1,'USD',2500,'same-key','test','provider-1',true) id",[f.program.id]);
+      const a=await c.query(
+        "select public.record_funding($1,'USD',2500,$2,'test',null,false) id",
+        [f.program.id,key]
+      );
+      const b=await c.query(
+        "select public.record_funding($1,'USD',2500,$2,'test',null,false) id",
+        [f.program.id,key]
+      );
       return [a.rows[0].id,b.rows[0].id];
     });
+
     expect(ids[0]).toBe(ids[1]);
-    const [count]=await sql<{n:string}>("select count(*)::text n from funding_transactions where idempotency_key='same-key:capture'");
+
+    const [count]=await sql<{n:string}>(
+      "select count(*)::text n from funding_commitments where idempotency_key=$1",
+      [key]
+    );
     expect(Number(count.n)).toBe(1);
+
+    const rejection=await expectRejection(
+      asUser(f.learner.id,c=>c.query(
+        "select public.record_funding($1,'USD',2500,$2,'test','provider-1',true)",
+        [f.program.id,forgedKey]
+      ))
+    );
+
+    expect(rejection.code).toBe("42501");
+    expect(rejection.message).toContain("governed reconciliation");
   });
 
   it("keeps a learner from seeing another learner's assessment",async()=>{
