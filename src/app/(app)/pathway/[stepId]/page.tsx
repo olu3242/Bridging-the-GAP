@@ -7,7 +7,8 @@ import { Alert, Badge } from "@/components/ui/feedback";
 import { LearningModule } from "@/components/app/learning-module";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import {
   getActivePathway,
   getCompletedActivityIds,
@@ -24,7 +25,7 @@ export const metadata: Metadata = { title: "Pathway step" };
 
 export default async function PathwayStepPage({ params }: { params: Promise<{ stepId: string }> }) {
   const [{ stepId }, actor] = await Promise.all([params, requireActor()]);
-  assertCan(actor, "learner.dashboard.view");
+  requireCapability(actor, "learner.dashboard.view");
 
   const supabase = await createSupabaseServerClient();
   const pathway = await getActivePathway(supabase, actor.profileId);

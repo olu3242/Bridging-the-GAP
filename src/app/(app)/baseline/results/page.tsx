@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, Badge, EmptyState, Progress } from "@/components/ui/feedback";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getCompetencyGaps, getLatestAttempt } from "@/server/services/diagnostic-service";
 import {
   GAP_SEVERITY_COPY,
@@ -27,7 +28,7 @@ export default async function BaselineResultsPage({
   searchParams: Promise<{ scored?: string }>;
 }) {
   const [{ scored }, actor] = await Promise.all([searchParams, requireActor()]);
-  assertCan(actor, "learner.dashboard.view");
+  requireCapability(actor, "learner.dashboard.view");
 
   const supabase = await createSupabaseServerClient();
   const [gaps, attempt] = await Promise.all([

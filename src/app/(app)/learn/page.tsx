@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { requireContext } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { searchCurriculum } from "@/server/services/curriculum-service";
 
 export const metadata = { title: "Learning catalog" };
 
 export default async function LearningCatalog({ searchParams }: { searchParams: Promise<{ q?: string; domain?: string; page?: string }> }) {
   const [{ supabase, actor }, parameters] = await Promise.all([requireContext(), searchParams]);
-  assertCan(actor, "profile.read_own");
+  requireCapability(actor, "profile.read_own");
   const query = typeof parameters.q === "string" ? parameters.q.slice(0, 200).trim() : "";
   const domain = typeof parameters.domain === "string" && /^D\d{2}$/.test(parameters.domain) ? parameters.domain : null;
   const page = Math.min(10000, Math.max(1, Number.parseInt(parameters.page ?? "1", 10) || 1));

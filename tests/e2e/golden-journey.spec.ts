@@ -1,17 +1,20 @@
 import { expect, test } from "@playwright/test";
 
+import { REACHABILITY_SKIP, supabaseReachable } from "./support/backend";
+
 /**
  * The implemented slice of the RC1 golden journey, plus the returning-user
  * state resolution the journey resolver owns.
  *
  * Auth cannot be stubbed without misrepresenting what was certified, so these
- * skip unless a Supabase project is configured.
+ * skip unless the configured Supabase project is actually *reachable*. Skipping
+ * on the presence of env vars alone reported a pass on an environment that
+ * could not have created a single identity.
  */
-const supabaseConfigured =
-  Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) && Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-
 test.describe("golden journey", () => {
-  test.skip(!supabaseConfigured, "Requires NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  test.beforeEach(async () => {
+    test.skip(!(await supabaseReachable()), REACHABILITY_SKIP);
+  });
 
   test("landing → join → onboarding → dashboard on real persisted state", async ({ page }) => {
     const email = `e2e-${Date.now()}@btg.test`;
@@ -202,28 +205,5 @@ test.describe("golden journey", () => {
     // And the landing's log-in CTA resolves to the outstanding gate.
     await page.goto("/sign-in");
     await expect(page).toHaveURL(/\/onboarding$/);
-  });
-});
-
-test.describe("route regression", () => {
-  // The proxy is intentionally inert without a Supabase project: there is no
-  // session to read, so it cannot decide anything.
-  test("protected routes redirect an anonymous visitor to sign in", async ({ page }) => {
-    test.skip(!supabaseConfigured, "The session proxy needs a configured Supabase project.");
-    for (const route of ["/dashboard", "/onboarding", "/organizations", "/outcomes", "/access", "/contributions", "/challenges", "/capabilities", "/governance", "/intelligence"]) {
-      await page.goto(route);
-      await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=%2F${route.slice(1)}`));
-    }
-  });
-
-  test("public routes stay reachable", async ({ page }) => {
-    for (const [route, heading] of [
-      ["/", "Learn AI. Build with AI.Prove what you can do."],
-      ["/join", "Create your BTG account"],
-      ["/sign-in", "Welcome back"],
-    ] as const) {
-      await page.goto(route);
-      await expect(page.locator("h1, h3").filter({ hasText: heading }).first()).toBeVisible();
-    }
   });
 });

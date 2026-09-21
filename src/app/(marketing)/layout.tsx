@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import { BRAND } from "@/components/brand/brand";
 import "./landing.css";
 
 /**
@@ -21,11 +22,14 @@ const inter = Inter({
   display: "swap",
 });
 
+/**
+ * The marketing group owns its own headline copy. The mark, the application
+ * name and the favicon come from the root layout, so they cannot diverge from
+ * the rest of the product.
+ */
 export const metadata: Metadata = {
-  title: "BTG AI — Learn AI. Build with AI. Prove what you can do.",
-  description:
-    "BTG AI helps Nigerian university students build practical AI capability through personalized learning, real projects, mentorship, and verified skills for the future of work.",
-  icons: { icon: "/brand/favicon.svg" },
+  title: `${BRAND.name} — Learn AI. Build with AI. Prove what you can do.`,
+  description: `${BRAND.name} helps Nigerian university students build practical AI capability through personalized learning, real projects, mentorship, and verified skills for the future of work.`,
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

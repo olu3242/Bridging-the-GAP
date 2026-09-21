@@ -8,7 +8,8 @@ import { Alert, Badge } from "@/components/ui/feedback";
 import { ReviewDecisionForm } from "@/components/app/review-decision-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getReview, getRubricCriteria } from "@/server/services/review-service";
 import { decideReviewAction } from "@/server/actions/review";
 import { formatRelative } from "@/lib/utils";
@@ -17,7 +18,7 @@ export const metadata: Metadata = { title: "Review" };
 
 export default async function ReviewPage({ params }: { params: Promise<{ reviewId: string }> }) {
   const [{ reviewId }, actor] = await Promise.all([params, requireActor()]);
-  assertCan(actor, "review.decide");
+  requireCapability(actor, "review.decide");
 
   const supabase = await createSupabaseServerClient();
   const review = (await getReview(supabase, reviewId)) as unknown as {

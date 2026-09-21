@@ -7,7 +7,8 @@ import { RefreshMatchesButton } from "@/components/app/refresh-matches-button";
 import { OfferResponse } from "@/components/app/offer-response";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import {
   listMyApplications,
   listMyMatches,
@@ -25,7 +26,7 @@ export default async function OpportunitiesPage({
   searchParams: Promise<{ applied?: string }>;
 }) {
   const [{ applied }, actor] = await Promise.all([searchParams, requireActor()]);
-  assertCan(actor, "opportunity.apply_own");
+  requireCapability(actor, "opportunity.apply_own");
 
   const supabase = await createSupabaseServerClient();
   const [opportunities, matches, applications, shareable] = await Promise.all([

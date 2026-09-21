@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 /*
- * BTG AI design tokens. Palette and elevation live here only — components
- * reference tokens, never raw hex values.
+ * BTG AI design tokens for the dark product surface (auth + app shells).
+ *
+ * These are the perceptual (oklch) restatement of the canonical brand hues in
+ * `BRAND_PALETTE` (src/components/brand/brand.ts): --color-brand is the brand
+ * violet, --color-surface-0 the indigo ground. Components reference these
+ * tokens and never raw hex; the marks themselves read their two fills from the
+ * same brand module, so the mark and the surface cannot drift apart.
  */
 @theme {
   --color-surface-0: oklch(0.16 0.02 268);

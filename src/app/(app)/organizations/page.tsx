@@ -5,11 +5,12 @@ import { Badge, EmptyState } from "@/components/ui/feedback";
 import { CreateOrganizationForm } from "@/components/app/create-organization-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { listOrganizationsForActor } from "@/server/services/organization-service";
 import { getCohortOutcomesFor, listGovernedCohorts } from "@/server/services/outcomes-service";
 import { CohortOutcomes } from "@/components/app/cohort-outcomes";
-import { can } from "@/domain/identity/actor";
+import {can} from "@/domain/identity/actor";
 import { createOrganizationAction } from "@/server/actions/organizations";
 import { getMyWorkQueue } from "@/server/services/workflow-service";
 import { WorkQueuePanel } from "@/components/app/work-queue-panel";
@@ -20,7 +21,7 @@ export const metadata: Metadata = { title: "Organizations" };
 export default async function OrganizationsPage() {
   const actor = await requireActor();
   // The page is a view over an authorized capability, never a substitute for it.
-  assertCan(actor, "organization.create");
+  requireCapability(actor, "organization.create");
 
   const supabase = await createSupabaseServerClient();
   const organizations = await listOrganizationsForActor(supabase);

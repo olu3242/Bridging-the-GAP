@@ -2,30 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { isSupabaseConfigured, publicEnv } from "@/lib/env";
 import { PRODUCT_HOME, isPathAllowed, resolveDestination } from "@/domain/identity/journey";
+import { isAuthRoute, isJourneyGated, requiresSession } from "@/domain/identity/routes";
+import { BRAND_ROUTES } from "@/components/brand/brand";
 import type { OnboardingState } from "@/domain/identity/lifecycle";
 import type { Persona } from "@/domain/identity/persona";
-
-/** Routes that require an authenticated actor. */
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/onboarding",
-  "/organizations",
-  "/baseline",
-  "/pathway",
-  "/projects",
-  "/portfolio",
-  "/review",
-  "/opportunities",
-  "/mentorship",
-  "/tutor",
-  "/outcomes",
-];
-/** Routes a signed-in learner should never sit on. */
-const AUTH_PREFIXES = ["/sign-in", "/join"];
-
-function matches(pathname: string, prefixes: readonly string[]): boolean {
-  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-}
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -40,7 +20,11 @@ export async function updateSession(request: NextRequest) {
       setAll(cookiesToSet) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
         response = NextResponse.next({ request });
-        for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
+        for (const { name, value, options } of cookiesToSet) {
+          // The PKCE verifier is server-only; see `harden` in ./server.ts.
+          const hardened = name.includes("code-verifier") ? { ...options, httpOnly: true } : options;
+          response.cookies.set(name, value, hardened);
+        }
       },
     },
   });
@@ -50,22 +34,25 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isProtected = matches(pathname, PROTECTED_PREFIXES);
-  const isAuthRoute = matches(pathname, AUTH_PREFIXES);
+  const needsSession = requiresSession(pathname);
 
   if (!user) {
-    if (isProtected) {
+    if (needsSession) {
       const url = request.nextUrl.clone();
-      url.pathname = "/sign-in";
+      url.pathname = BRAND_ROUTES.signIn;
+      url.search = "";
+      // Carry the destination so signing in returns the visitor to it.
       url.searchParams.set("next", pathname);
       return NextResponse.redirect(url);
     }
     return response;
   }
 
-  // Signed in. Resolve where this learner actually belongs from persisted
-  // state, rather than assuming the dashboard.
-  if (!isProtected && !isAuthRoute) return response;
+  // Signed in. Resolve where this actor actually belongs from persisted state,
+  // rather than assuming the dashboard. `/reset-password` is deliberately not
+  // journey-gated: a recovery session must be able to finish.
+  const onAuthRoute = isAuthRoute(pathname);
+  if (!isJourneyGated(pathname) && !onAuthRoute) return response;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -81,7 +68,7 @@ export async function updateSession(request: NextRequest) {
     primaryPersona: profile?.primary_persona as Persona | undefined,
   };
 
-  if (isAuthRoute) {
+  if (onAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = resolveDestination(state);
     url.search = "";
@@ -97,7 +84,7 @@ export async function updateSession(request: NextRequest) {
 
   // Onboarding is finished: the onboarding route itself is no longer a valid
   // place to sit.
-  if (pathname === "/onboarding" && state.onboardingState === "completed") {
+  if (pathname === BRAND_ROUTES.onboarding && state.onboardingState === "completed") {
     const url = request.nextUrl.clone();
     url.pathname = PRODUCT_HOME;
     url.search = "";

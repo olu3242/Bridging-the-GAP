@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { BrandMark } from "./brand-mark";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { LANDING_LINKS } from "./links";
 
 const NAV = [
@@ -22,14 +22,7 @@ export function SiteHeader() {
   return (
     <header className={`site-header${navOpen ? " nav-open" : ""}`} id="top">
       <div className="wrap header-inner">
-        <Link className="brand" href="/" aria-label="BTG AI home">
-          <span className="brand-mark" aria-hidden="true">
-            <BrandMark />
-          </span>
-          <span className="brand-word">
-            BTG <em>AI</em>
-          </span>
-        </Link>
+        <BrandLogo variant="landing" tone="indigo" />
 
         <nav className="main-nav" id="main-nav" aria-label="Primary">
           {NAV.map((item) => (

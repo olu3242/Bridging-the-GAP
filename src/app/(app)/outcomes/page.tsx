@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge, EmptyState } from "@/components/ui/feedback";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getLearnerOutcomes, getOutcomeTimeline } from "@/server/services/outcomes-service";
 import { FUNNEL_STEPS, OUTCOME_LABELS } from "@/domain/outcomes/stages";
 import { formatRelative } from "@/lib/utils";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Your outcomes" };
 
 export default async function OutcomesPage() {
   const actor = await requireActor();
-  assertCan(actor, "outcomes.read_own");
+  requireCapability(actor, "outcomes.read_own");
 
   const supabase = await createSupabaseServerClient();
   const [outcomes, timeline] = await Promise.all([

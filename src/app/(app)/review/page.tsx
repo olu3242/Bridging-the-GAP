@@ -5,7 +5,8 @@ import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
 import { ClaimReviewButton } from "@/components/app/claim-review-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getReviewQueue } from "@/server/services/review-service";
 import { getMyWorkQueue } from "@/server/services/workflow-service";
 import { WorkQueuePanel } from "@/components/app/work-queue-panel";
@@ -22,7 +23,7 @@ export default async function ReviewQueuePage({
 }) {
   const [{ decided }, actor] = await Promise.all([searchParams, requireActor()]);
   // A reviewer persona is required; the database checks it again on claim.
-  assertCan(actor, "review.decide");
+  requireCapability(actor, "review.decide");
 
   const supabase = await createSupabaseServerClient();
   // Two queues, deliberately: the engine's review assignments, and the

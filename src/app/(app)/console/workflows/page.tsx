@@ -6,7 +6,8 @@ import { Badge, EmptyState } from "@/components/ui/feedback";
 import { EscalateOverdueButton } from "@/components/app/escalate-overdue-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import {
   listWorkflowBlockers,
   listWorkflowInstances,
@@ -35,7 +36,7 @@ const BLOCKER_LABELS: Record<string, string> = {
  */
 export default async function WorkflowConsolePage() {
   const actor = await requireActor();
-  assertCan(actor, "operator.console.view");
+  requireCapability(actor, "operator.console.view");
 
   const supabase = await createSupabaseServerClient();
   const [blockers, open] = await Promise.all([

@@ -4,7 +4,8 @@ import { PathwayGenerate } from "@/components/app/pathway-generate";
 import { PathwayPlan } from "@/components/app/pathway-plan";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getActivePathway, getPathwaySteps } from "@/server/services/pathway-service";
 import { getCompetencyGaps } from "@/server/services/diagnostic-service";
 import { generatePathwayAction, startStepAction } from "@/server/actions/pathway";
@@ -17,7 +18,7 @@ export default async function PathwayPage({
   searchParams: Promise<{ generated?: string }>;
 }) {
   const [{ generated }, actor] = await Promise.all([searchParams, requireActor()]);
-  assertCan(actor, "learner.dashboard.view");
+  requireCapability(actor, "learner.dashboard.view");
 
   const supabase = await createSupabaseServerClient();
   const pathway = await getActivePathway(supabase, actor.profileId);

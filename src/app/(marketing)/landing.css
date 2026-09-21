@@ -10,7 +10,9 @@
    ========================================================= */
 
 :root {
-  /* Color */
+  /* Color — the canonical BTG palette. These values are the hex form of
+     `BRAND_PALETTE` in src/components/brand/brand.ts, which is the single
+     source of truth; `tests/domain/brand.test.ts` fails if the two drift. */
   --indigo: #1E1B4B;
   --violet: #7C3AED;
   --violet-dark: #6425e0;
