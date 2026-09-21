@@ -24,64 +24,7 @@ async function learner(label: string) {
   return l;
 }
 
-return l;
-}
-
 describe("projects", () => {
-  it("retains both evidence claims when a competency is independently verified again", async () => {
-    const l = await learner("repeat-verified-skill");
-    const r = await makeReviewer("repeat-skill-reviewer");
-
-    const first = await proveCompetency(
-      l.id,
-      r.id,
-      "brief-ai-concepts"
-    );
-
-    const second = await proveCompetency(
-      l.id,
-      r.id,
-      "brief-ai-concepts"
-    );
-
-    const rows = await sql<{
-      id: string;
-      evidence_id: string;
-      superseded_by: string | null;
-    }>(
-      `
-        select id, evidence_id, superseded_by
-        from verified_skills
-        where profile_id = $1
-        order by verified_at, id
-      `,
-      [l.id]
-    );
-
-    expect(rows).toHaveLength(2);
-
-    const oldClaim = rows.find(
-      (row) => row.evidence_id === first.evidenceId
-    )!;
-
-    const newClaim = rows.find(
-      (row) => row.evidence_id === second.evidenceId
-    )!;
-
-    expect(oldClaim.superseded_by).toBe(newClaim.id);
-    expect(newClaim.superseded_by).toBeNull();
-  });
-
-  it("assigns a brief and records it", async () => {
-    const l = await learner("assignee");
-    const projectId = await assignProject(
-      l.id,
-      "brief-ai-concepts"
-    );
-
-    // continue existing assertions...
-  });
-});
   it("retains both evidence claims when a competency is independently verified again", async () => {
     const l = await learner("repeat-verified-skill");
     const r = await makeReviewer("repeat-skill-reviewer");
@@ -523,3 +466,4 @@ describe("pathway step completion now needs verified evidence", () => {
     expect(after.find((s) => s.competency_slug === "prompt-design")!.status).toBe("available");
   });
 });
+

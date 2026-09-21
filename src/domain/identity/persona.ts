@@ -79,6 +79,10 @@ export const CAPABILITIES = [
   "audit.read_all",
   "outcomes.read_own",
   "outcomes.read_org",
+  "funding.manage",
+  "contribution.manage",
+  "challenge.manage",
+  "intelligence.read_org",
   "platform.govern",
 ] as const;
 
@@ -122,6 +126,9 @@ export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
     "membership.invite",
     "membership.manage",
     "audit.read_org",
+    "contribution.manage",
+    "challenge.manage",
+    "intelligence.read_org",
   ],
   employer: [
     ...SELF_SERVICE,
@@ -133,6 +140,9 @@ export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
     "membership.invite",
     "membership.manage",
     "audit.read_org",
+    "contribution.manage",
+    "challenge.manage",
+    "intelligence.read_org",
   ],
   sponsor: [
     ...SELF_SERVICE,
@@ -143,6 +153,8 @@ export const PERSONA_CAPABILITIES: Record<Persona, readonly Capability[]> = {
     "membership.invite",
     "membership.manage",
     "audit.read_org",
+    "funding.manage",
+    "intelligence.read_org",
   ],
   operator: [...CAPABILITIES],
 };
