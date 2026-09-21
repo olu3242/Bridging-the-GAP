@@ -1,25 +1,4 @@
 -- W14-C — Workflow core.
---
--- Execution state, and only execution state. This migration adds no domain
--- fact and copies none: what is true stays in the E1-E17 tables, what happened
--- stays in the audit ledger, and what follows next lives here.
---
--- Two rules shape every table below.
---
---   1. A published definition version is immutable, and an instance pins the
---      version it started on. A definition change never retroactively alters
---      an in-flight instance.
---   2. A work item cannot be marked completed unless the domain actually
---      shows the corresponding state. The workflow is a projection of the
---      engines, so it is not permitted to assert something the engines do not
---      already say. That is enforced in btg.complete_work_item, not in a
---      comment.
---
--- There is deliberately no dynamic SQL anywhere in this file: a step names a
--- handler and a completion check by label, both foreign-keyed to an allowlist,
--- and the checks themselves are a hardcoded CASE.
-
--- ------------------------------------------------------------------ enums ---
 do $$ begin
   create type public.btg_workflow_scope as enum ('platform','organization');
 exception when duplicate_object then null; end $$;
@@ -48,19 +27,12 @@ do $$ begin
     ('system','ai','persona','profile','external');
 exception when duplicate_object then null; end $$;
 
-/* Handler classes. All of them are declared now so the type is stable; W14-C
-   only implements 'await_domain_state', and a step may not name a handler the
-   dispatcher does not yet resolve (asserted in btg.start_workflow). */
 do $$ begin
   create type public.btg_workflow_handler as enum
     ('noop','await_domain_state','domain_command','ai_worker',
      'human_review','approval','external_call','timer');
 exception when duplicate_object then null; end $$;
 
--- --------------------------------------------------------------- taxonomy ---
--- The ledger already emits exactly these workflow labels. Reusing them as a
--- foreign-keyed table means a definition cannot invent a label the evidence
--- trail does not recognise, and a test can assert the two agree.
 create table if not exists btg.workflow_taxonomy (
   label text primary key check (label ~ '^[a-z0-9_]{3,40}$')
 );
@@ -72,10 +44,6 @@ insert into btg.workflow_taxonomy (label) values
   ('opportunities'), ('matching'), ('mentorship'), ('tutor'), ('notifications')
 on conflict (label) do nothing;
 
--- ------------------------------------------------------- completion checks ---
--- The allowlist of domain assertions a step may require. `requires_subject_type`
--- is what the work item must reference, so a step cannot be pointed at the
--- wrong kind of entity.
 create table if not exists btg.workflow_checks (
   name text primary key check (name ~ '^[a-z0-9_]{3,60}$'),
   requires_subject_type text,
@@ -93,17 +61,13 @@ on conflict (name) do update set
   requires_subject_type = excluded.requires_subject_type,
   description = excluded.description;
 
--- ------------------------------------------------------------ definitions ---
 create table if not exists public.workflow_definitions (
   id uuid primary key default gen_random_uuid(),
   key text not null unique check (key ~ '^[A-Za-z0-9_]{3,60}$'),
   name text not null check (char_length(btrim(name)) between 3 and 120),
   description text,
   scope public.btg_workflow_scope not null default 'platform',
-  /* The ledger label this workflow's evidence is filed under. Null for a
-     coordinator that spans several, which files each step under its own. */
   audit_workflow text references btg.workflow_taxonomy(label),
-  /* Configurable: whether the workflow may be instantiated at all. */
   is_enabled boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -130,7 +94,6 @@ create table if not exists public.workflow_definition_versions (
 comment on table public.workflow_definition_versions is
   'W14-C: a published version is immutable and is pinned by every instance that started on it.';
 
--- At most one published version per definition.
 create unique index if not exists workflow_versions_one_published
   on public.workflow_definition_versions (definition_id) where status = 'published';
 
@@ -142,18 +105,13 @@ create table if not exists public.workflow_definition_steps (
   ordinal smallint not null check (ordinal >= 1),
   item_type public.btg_work_item_type not null,
   handler public.btg_workflow_handler not null,
-  /* Named allowlist entries only -- never a function name from a payload. */
   completion_check text references btg.workflow_checks(name),
-  /* Set in W14-D; FK added with the command allowlist in that batch. */
   domain_command text,
   owner_kind public.btg_work_owner_kind not null default 'system',
   owner_persona public.btg_persona,
-  /* Configurable per step. */
   sla_hours numeric(6,2) check (sla_hours is null or sla_hours > 0),
   max_attempts integer not null default 3 check (max_attempts between 1 and 20),
   priority smallint not null default 100 check (priority between 1 and 1000),
-  /* Which ledger label this step's evidence is filed under, when the parent
-     definition spans more than one. */
   audit_workflow text references btg.workflow_taxonomy(label),
   created_at timestamptz not null default now(),
   unique (definition_version_id, step_key),
@@ -166,17 +124,13 @@ create table if not exists public.workflow_definition_steps (
 comment on table public.workflow_definition_steps is
   'W14-C: the step catalog of one definition version. Frozen when the version publishes.';
 
--- -------------------------------------------------------------- instances ---
 create table if not exists public.workflow_instances (
-  /* The durable process identity. Deliberately NOT correlation_id, which is
-     generated per HTTP request and dies with it. */
   id uuid primary key default gen_random_uuid(),
   definition_version_id uuid not null
     references public.workflow_definition_versions(id),
   status public.btg_workflow_status not null default 'created',
   organization_id uuid references public.organizations(id) on delete set null,
   subject_profile_id uuid references public.profiles(id) on delete cascade,
-  /* Namespaced by the caller, e.g. 'baseline_diagnostic:<profile>'. */
   idempotency_key text,
   started_at timestamptz,
   settled_at timestamptz,
@@ -198,7 +152,6 @@ create index if not exists workflow_instances_subject_idx
 create index if not exists workflow_instances_open_idx
   on public.workflow_instances (status) where status in ('created','active','waiting');
 
--- ------------------------------------------------------------- work items ---
 create table if not exists public.workflow_work_items (
   id uuid primary key default gen_random_uuid(),
   workflow_instance_id uuid not null
@@ -214,8 +167,6 @@ create table if not exists public.workflow_work_items (
   deadline_at timestamptz,
   attempts integer not null default 0 check (attempts >= 0),
   max_attempts integer not null default 3 check (max_attempts between 1 and 20),
-  /* Bounded, and a reference rather than a copy: the domain entity this step
-     concerns is named by (subject_type, subject_id), never duplicated here. */
   input jsonb not null default '{}'::jsonb,
   result jsonb,
   failure text,
@@ -241,7 +192,6 @@ create table if not exists public.workflow_work_items (
 comment on table public.workflow_work_items is
   'W14-C: one unit of execution. Completion is verified against domain state, never asserted.';
 
--- One live item per step per instance; a failed or cancelled one may be replaced.
 create unique index if not exists work_items_one_live_per_step
   on public.workflow_work_items (workflow_instance_id, step_key)
   where status not in ('failed','cancelled');
@@ -255,7 +205,6 @@ create index if not exists work_items_owner_idx
 create index if not exists work_items_deadline_idx
   on public.workflow_work_items (deadline_at) where deadline_at is not null;
 
--- ------------------------------------------------- transition registration ---
 insert into btg.state_transitions (machine, from_state, to_state) values
   ('workflow_version', 'draft', 'published'),
   ('workflow_version', 'published', 'superseded'),
@@ -312,9 +261,6 @@ drop trigger if exists workflow_definitions_touch on public.workflow_definitions
 create trigger workflow_definitions_touch before update on public.workflow_definitions
   for each row execute function btg.touch_updated_at();
 
--- ------------------------------------------------------ version immutability ---
-/* A published version may only be superseded. Nothing else about it changes,
-   ever, because instances are still running against it. */
 create or replace function btg.guard_definition_version()
 returns trigger language plpgsql set search_path = public, btg, pg_temp as $$
 begin
@@ -351,7 +297,6 @@ create trigger workflow_versions_immutable
   before update or delete on public.workflow_definition_versions
   for each row execute function btg.guard_definition_version();
 
-/* Versions are monotonic: a new one is exactly max + 1 for its definition. */
 create or replace function btg.assign_definition_version()
 returns trigger language plpgsql set search_path = public, btg, pg_temp as $$
 declare v_next integer;
@@ -373,7 +318,6 @@ create trigger workflow_versions_monotonic
   before insert on public.workflow_definition_versions
   for each row execute function btg.assign_definition_version();
 
-/* The step catalog freezes with its version. */
 create or replace function btg.guard_definition_steps()
 returns trigger language plpgsql set search_path = public, btg, pg_temp as $$
 declare v_status public.btg_workflow_version_status; v_version uuid;
@@ -400,8 +344,6 @@ create trigger workflow_steps_frozen
   before insert or update or delete on public.workflow_definition_steps
   for each row execute function btg.guard_definition_steps();
 
-/* An instance never migrates version silently. Moving one is an explicit,
-   recorded operation and is not implemented here -- so it is refused. */
 create or replace function btg.guard_instance_version_pin()
 returns trigger language plpgsql set search_path = public, btg, pg_temp as $$
 begin
@@ -420,10 +362,6 @@ create trigger workflow_instances_pinned
   before update on public.workflow_instances
   for each row execute function btg.guard_instance_version_pin();
 
--- ---------------------------------------------------------------- read ACL ---
-/* Answered outside RLS so the work-item policy can reference the instance
-   without the policy on one table reading a table whose policy reads it back
-   -- the recursion that defect 14 was. */
 create or replace function btg.can_read_instance(p_instance uuid)
 returns boolean language sql stable security definer
 set search_path = public, btg, pg_temp as $$
@@ -443,7 +381,6 @@ alter table public.workflow_definition_steps enable row level security;
 alter table public.workflow_instances enable row level security;
 alter table public.workflow_work_items enable row level security;
 
--- Definitions, versions and steps are operator configuration.
 drop policy if exists workflow_definitions_select on public.workflow_definitions;
 create policy workflow_definitions_select on public.workflow_definitions
   for select to authenticated using (btg.is_operator());
@@ -456,8 +393,6 @@ drop policy if exists workflow_steps_select on public.workflow_definition_steps;
 create policy workflow_steps_select on public.workflow_definition_steps
   for select to authenticated using (btg.is_operator());
 
--- An instance is visible to its subject, an operator, and an admin of the
--- organization it runs for. Nobody else.
 drop policy if exists workflow_instances_select on public.workflow_instances;
 create policy workflow_instances_select on public.workflow_instances
   for select to authenticated using (
@@ -473,8 +408,6 @@ create policy work_items_select on public.workflow_work_items
     owner_profile_id = auth.uid() or btg.can_read_instance(workflow_instance_id)
   );
 
--- Read only. There is no session write path to execution state at all: every
--- mutation goes through a service_role function below.
 grant select on public.workflow_definitions, public.workflow_definition_versions,
   public.workflow_definition_steps, public.workflow_instances,
   public.workflow_work_items to authenticated;
@@ -484,10 +417,6 @@ grant all on public.workflow_definitions, public.workflow_definition_versions,
 grant select, insert, update, delete on btg.workflow_taxonomy, btg.workflow_checks
   to service_role;
 
--- ------------------------------------------------------- domain assertions ---
-/* The allowlisted completion checks. No dynamic SQL: a step names one of
-   these labels, the label is foreign-keyed, and the body is a CASE. Adding a
-   check is a migration, which is the point. */
 create or replace function btg.assert_step_satisfied(
   p_check text,
   p_subject_type text,
@@ -533,12 +462,6 @@ begin
 end;
 $$;
 
--- ------------------------------------------------------------- evidence ---
-/* The runtime's own evidence writer. public.record_audit_event requires an
-   authenticated actor -- correctly, since it is the session-facing path -- and
-   a worker has no session. This records the same shape with a null actor and
-   an explicit system marker, so a runtime action is never attributed to a
-   learner who did not take it. service_role only. */
 create or replace function btg.record_workflow_event(
   p_action text,
   p_object_type text,
@@ -567,7 +490,6 @@ begin
 end;
 $$;
 
--- ------------------------------------------------------------- publishing ---
 create or replace function btg.publish_definition_version(p_version_id uuid)
 returns public.workflow_definition_versions
 language plpgsql security definer set search_path = public, btg, pg_temp as $$
@@ -590,7 +512,6 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  -- Ordinals must be 1..n with no gap, or "the next step" is ambiguous.
   if exists (
     select 1 from (
       select ordinal, row_number() over (order by ordinal) as rn
@@ -626,7 +547,6 @@ begin
 end;
 $$;
 
--- --------------------------------------------------------------- start run ---
 create or replace function btg.start_workflow(
   p_definition_key text,
   p_subject_profile_id uuid,
@@ -661,7 +581,6 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  -- A handler the dispatcher cannot resolve would strand the instance.
   if exists (
     select 1 from public.workflow_definition_steps s
     where s.definition_version_id = v_version.id
@@ -725,10 +644,6 @@ begin
 end;
 $$;
 
--- ----------------------------------------------------------------- advance ---
-/* Sequential advancement over the pinned version's ordinals. The instance's
-   status follows what the next item needs: a human, approval, external or
-   timer step means waiting; system and ai work means active. */
 create or replace function btg.advance_instance(p_instance_id uuid)
 returns public.workflow_instances
 language plpgsql security definer set search_path = public, btg, pg_temp as $$
@@ -796,8 +711,6 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------- bind + complete ---
-/* The domain entity a step concerns, attached as a reference. */
 create or replace function btg.bind_work_item_subject(
   p_item_id uuid, p_subject_type text, p_subject_id uuid
 )
@@ -816,9 +729,6 @@ begin
 end;
 $$;
 
-/* The projection guarantee. A work item reaches 'completed' only if the
-   engines already show the state its step requires -- so the workflow can
-   never claim a learner did something the domain does not record. */
 create or replace function btg.complete_work_item(
   p_item_id uuid, p_result jsonb default '{}'::jsonb
 )
@@ -832,7 +742,7 @@ declare
 begin
   select * into v_item from public.workflow_work_items where id = p_item_id for update;
   if not found then raise exception 'work item not found' using errcode = 'P0002'; end if;
-  if v_item.status = 'completed' then return v_item; end if;  -- idempotent
+  if v_item.status = 'completed' then return v_item; end if;
   if v_item.status not in ('ready','claimed') then
     raise exception 'a % work item cannot be completed', v_item.status
       using errcode = 'check_violation';
@@ -954,11 +864,6 @@ begin
 end;
 $$;
 
--- -------------------------------------------------------- function grants ---
-/* Every runtime function is service_role only, revoked from PUBLIC explicitly
-   rather than left to a default privilege -- the two security defects this
-   branch already fixed were both default-privilege failures. btg.can_read_instance
-   is the exception: RLS must evaluate it as the calling role. */
 do $$ declare fn text;
 begin
   foreach fn in array array[
@@ -987,11 +892,6 @@ revoke all on function btg.can_read_instance(uuid) from public;
 revoke all on function btg.can_read_instance(uuid) from anon;
 grant execute on function btg.can_read_instance(uuid) to authenticated, service_role;
 
--- ------------------------------------------------------------------ seeds ---
-/* Every workflow label the ledger emits is reserved as a definition, plus the
-   coordinator. Only baseline_diagnostic is enabled and versioned in W14-C:
-   a definition with no published version cannot be instantiated, which is
-   exactly the right default for the ones whose batches have not landed. */
 insert into public.workflow_definitions (key, name, description, scope, audit_workflow, is_enabled)
 values
   ('signup', 'Sign-up', 'Account creation through to a usable profile.', 'platform', 'signup', false),
@@ -1021,11 +921,6 @@ on conflict (key) do update set
   name = excluded.name, description = excluded.description,
   scope = excluded.scope, audit_workflow = excluded.audit_workflow;
 
-/* baseline_diagnostic v1. Three steps, each an assertion about domain state
-   the diagnostic engine owns: the attempt exists, the attempt was scored by
-   submit_diagnostic_attempt, and the baseline landed in learner_competencies.
-   The engine remains authoritative throughout -- this catalog describes what
-   the workflow waits for, not how any of it happens. */
 do $$
 declare v_def uuid; v_version uuid;
 begin
