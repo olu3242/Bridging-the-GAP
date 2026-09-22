@@ -13,7 +13,7 @@ export function Banner() {
     <section className="banner">
       <div className="wrap banner-inner">
         <div className="banner-copy">
-          <p className="eyebrow-pill eyebrow-pill--dark">From campus to global opportunity</p>
+          <p className="eyebrow-pill eyebrow-pill--dark">From learning to global opportunity</p>
           <h2>
             More than learning.
             <br />
