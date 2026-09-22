@@ -4,7 +4,6 @@ import { OnboardingFlow } from "@/components/app/onboarding-steps";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getLearnerProfile, getProfile } from "@/server/services/onboarding-service";
 import { requireActor } from "@/server/services/actor";
-import { submitOnboardingStepAction } from "@/server/actions/onboarding";
 
 export const metadata: Metadata = { title: "Onboarding" };
 
@@ -20,7 +19,6 @@ export default async function OnboardingPage() {
 
   return (
     <OnboardingFlow
-      action={submitOnboardingStepAction}
       state={profile.onboarding_state}
       profile={profile}
       learnerProfile={learnerProfile}
