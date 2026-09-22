@@ -20,7 +20,7 @@ export function Banner() {
             A bolder future.
           </h2>
           <p>
-            Join a growing community of Nigerian students using AI to solve real problems and build
+            Join a growing global community of learners using AI to solve real problems and build
             work the world can see.
           </p>
           <Link className="btn btn-primary btn-lg" href={LANDING_LINKS.getStarted}>
