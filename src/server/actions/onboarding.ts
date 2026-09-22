@@ -11,6 +11,7 @@ import {
 } from "@/domain/identity/onboarding";
 import { completeOnboardingStep, type OnboardingStepKey } from "@/server/services/onboarding-service";
 import { requireContext } from "@/server/services/actor";
+import { continueLearnerWork } from "@/server/services/workflow-service";
 import { type ActionState, errorState, fieldErrorsFrom, toActionState } from "./action-result";
 
 const STEP_SCHEMAS = {
@@ -92,6 +93,13 @@ export async function submitOnboardingStepAction(
       correlationId,
     );
     completed = profile.onboarding_state === "completed";
+    if (completed) {
+      /* The journey becomes a durable run at the moment the learner is a
+         learner. Everything after this is the coordinator waiting on engine
+         state, so the dashboard can always say where they are and what is
+         next. */
+      await continueLearnerWork(supabase, { workflows: ["BTG_LEARNER_TO_OPPORTUNITY"] });
+    }
   } catch (error) {
     return toActionState(error);
   }

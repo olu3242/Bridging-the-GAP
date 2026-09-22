@@ -1,0 +1,11 @@
+import type {Metadata} from "next";
+import {BarChart3} from "lucide-react";
+import {governedOrganizationIds} from "@/domain/identity/actor";
+import {requireActor} from "@/server/services/actor";
+import { requireCapability } from "@/server/services/page-guard";
+import {createSupabaseServerClient} from "@/lib/supabase/server";
+import {getInstitutionIntelligence,type IntelligenceMetric} from "@/server/services/flywheel-service";
+import {Card,CardContent,CardDescription,CardHeader,CardTitle} from "@/components/ui/card";
+import {EmptyState} from "@/components/ui/feedback";
+export const metadata:Metadata={title:"Institutional intelligence"};
+export default async function IntelligencePage(){const actor=await requireActor();requireCapability(actor,"intelligence.read_org");const ids=governedOrganizationIds(actor);const supabase=await createSupabaseServerClient();let metrics:IntelligenceMetric[]=[];let unavailable=false;if(ids[0]){try{metrics=await getInstitutionIntelligence(supabase,ids[0]);}catch{unavailable=true;}}return <div className="space-y-5"><div><h1 className="text-2xl font-semibold">Institutional intelligence</h1><p className="mt-1 text-sm text-ink-muted">Authorized aggregates derived only from canonical evidence and outcomes.</p></div><Card><CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="size-4 text-accent"/>Program evidence</CardTitle><CardDescription>Every metric states its definition, sources, scope, time window and freshness. Groups below five are suppressed.</CardDescription></CardHeader><CardContent>{unavailable||metrics.length===0?<EmptyState icon={BarChart3} title="Privacy threshold not met" description="At least five active members are required before organization intelligence is reported."/>:<dl className="grid gap-3 sm:grid-cols-2">{metrics.map(m=><div key={m.metric_key} className="rounded-xl border border-white/8 p-4"><dt className="text-sm text-ink-muted">{m.definition}</dt><dd className="mt-1 text-3xl font-semibold tabular-nums">{m.metric_value}</dd><p className="mt-2 text-xs text-ink-subtle">Sources: {m.source_relations.join(", ")} · fresh {new Date(m.freshness).toLocaleString()}</p></div>)}</dl>}</CardContent></Card></div>}

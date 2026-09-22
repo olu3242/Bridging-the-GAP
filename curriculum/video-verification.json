@@ -1,0 +1,473 @@
+{
+  "method": "Playwright Chromium source pages and actual iframes hosted on a local HTTP origin with strict-origin-when-cross-origin referrer policy",
+  "limitation": "No candidate has a complete identity, playback, embedding, relevance, metadata and accessibility proof. Network errors do not establish that a video is dead.",
+  "records": [
+    {
+      "video_id": "k7HaeJs-N-o",
+      "candidate_title": "Microsoft — Generative AI for Beginners",
+      "checked_at": "2026-09-20T01:43:22.366Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=k7HaeJs-N-o",
+          "http_status": 200,
+          "title": "Full Series [Part 1-18] | Generative AI for Beginners - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/k7HaeJs-N-o-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/k7HaeJs-N-o",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "playback_error": "frame.waitForFunction: Timeout 8000ms exceeded.",
+          "controls": [
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytp-unmute ytp-popup ytp-button ytp-unmute-animated ytp-unmute-shrink"
+            },
+            {
+              "label": "Play video",
+              "title": "Play video",
+              "class_name": "ytmCuedOverlayPlayButton"
+            },
+            {
+              "label": "Hide player controls",
+              "title": null,
+              "class_name": "ytmA11yStylesHiddenButton"
+            },
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytmVideoInfoLink ytmVideoInfoChannelAvatar"
+            },
+            {
+              "label": "Close",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            },
+            {
+              "label": "Share",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            }
+          ],
+          "visible_message": "Full Series [Part 1-18] | Generative AI for Beginners\nMicrosoft Developer\nMicrosoft Developer\n696K subscribers\nWatch on",
+          "screenshot": "test-results/video-verification/k7HaeJs-N-o-embed.png"
+        }
+      ]
+    },
+    {
+      "video_id": "YOp-e1GjZdA",
+      "candidate_title": "Microsoft — Responsible Generative AI",
+      "checked_at": "2026-09-20T01:43:33.358Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=YOp-e1GjZdA",
+          "http_status": 200,
+          "title": "Using Generative AI Responsibly [Pt 3] | Generative AI for Beginners - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/YOp-e1GjZdA-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/YOp-e1GjZdA",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "playback_error": "frame.waitForFunction: Timeout 8000ms exceeded.",
+          "controls": [
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytp-unmute ytp-popup ytp-button ytp-unmute-animated ytp-unmute-shrink"
+            },
+            {
+              "label": "Play video",
+              "title": "Play video",
+              "class_name": "ytmCuedOverlayPlayButton"
+            },
+            {
+              "label": "Hide player controls",
+              "title": null,
+              "class_name": "ytmA11yStylesHiddenButton"
+            },
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytmVideoInfoLink ytmVideoInfoChannelAvatar"
+            },
+            {
+              "label": "Close",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            },
+            {
+              "label": "Share",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            }
+          ],
+          "visible_message": "Using Generative AI Responsibly [Pt 3] | Generative AI for Beginners\nMicrosoft Developer\nMicrosoft Developer\n696K subscribers\nWatch on",
+          "screenshot": "test-results/video-verification/YOp-e1GjZdA-embed.png"
+        }
+      ]
+    },
+    {
+      "video_id": "WXsD0ZgxjRw",
+      "candidate_title": "freeCodeCamp — APIs for Beginners",
+      "checked_at": "2026-09-20T01:43:44.104Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=WXsD0ZgxjRw",
+          "http_status": 200,
+          "title": "APIs for Beginners - How to use an API (Full Course / Tutorial) - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/WXsD0ZgxjRw-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/WXsD0ZgxjRw",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "playback_error": "frame.waitForFunction: Timeout 8000ms exceeded.",
+          "controls": [
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytp-unmute ytp-popup ytp-button ytp-unmute-animated ytp-unmute-shrink"
+            },
+            {
+              "label": "Play video",
+              "title": "Play video",
+              "class_name": "ytmCuedOverlayPlayButton"
+            },
+            {
+              "label": "Hide player controls",
+              "title": null,
+              "class_name": "ytmA11yStylesHiddenButton"
+            },
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytmVideoInfoLink ytmVideoInfoChannelAvatar"
+            },
+            {
+              "label": "Close",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            },
+            {
+              "label": "Share",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            }
+          ],
+          "visible_message": "APIs for Beginners - How to use an API (Full Course / Tutorial)\nfreeCodeCamp.org\nfreeCodeCamp.org\n11.9M subscribers\nWatch on",
+          "screenshot": "test-results/video-verification/WXsD0ZgxjRw-embed.png"
+        }
+      ]
+    },
+    {
+      "video_id": "RGOj5yH7evk",
+      "candidate_title": "freeCodeCamp — Git & GitHub for Beginners",
+      "checked_at": "2026-09-20T01:43:55.013Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=RGOj5yH7evk",
+          "http_status": 200,
+          "title": "Git and GitHub for Beginners - Crash Course - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/RGOj5yH7evk-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/RGOj5yH7evk",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "playback_error": "frame.waitForFunction: Timeout 8000ms exceeded.",
+          "controls": [
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytp-unmute ytp-popup ytp-button ytp-unmute-animated ytp-unmute-shrink"
+            },
+            {
+              "label": "Play video",
+              "title": "Play video",
+              "class_name": "ytmCuedOverlayPlayButton"
+            },
+            {
+              "label": "Hide player controls",
+              "title": null,
+              "class_name": "ytmA11yStylesHiddenButton"
+            },
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytmVideoInfoLink ytmVideoInfoChannelAvatar"
+            },
+            {
+              "label": "Close",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            },
+            {
+              "label": "Share",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            }
+          ],
+          "visible_message": "Git and GitHub for Beginners - Crash Course\nfreeCodeCamp.org\nfreeCodeCamp.org\n11.9M subscribers\nWatch on",
+          "screenshot": "test-results/video-verification/RGOj5yH7evk-embed.png"
+        }
+      ]
+    },
+    {
+      "video_id": "Th8JoIan4dg",
+      "candidate_title": "Y Combinator — Startup Ideas",
+      "checked_at": "2026-09-20T01:44:06.105Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=Th8JoIan4dg",
+          "http_status": 200,
+          "title": "How to Get and Evaluate Startup Ideas | Startup School - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/Th8JoIan4dg-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/Th8JoIan4dg",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "playback_error": "frame.waitForFunction: Timeout 8000ms exceeded.",
+          "controls": [
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytp-unmute ytp-popup ytp-button ytp-unmute-animated ytp-unmute-shrink"
+            },
+            {
+              "label": "Play video",
+              "title": "Play video",
+              "class_name": "ytmCuedOverlayPlayButton"
+            },
+            {
+              "label": "Hide player controls",
+              "title": null,
+              "class_name": "ytmA11yStylesHiddenButton"
+            },
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytmVideoInfoLink ytmVideoInfoChannelAvatar"
+            },
+            {
+              "label": "Close",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            },
+            {
+              "label": "Share",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            }
+          ],
+          "visible_message": "How to Get and Evaluate Startup Ideas | Startup School\nY Combinator\nY Combinator\n2.38M subscribers\nWatch on",
+          "screenshot": "test-results/video-verification/Th8JoIan4dg-embed.png"
+        }
+      ]
+    },
+    {
+      "video_id": "z1iF1c8w5Lg",
+      "candidate_title": "Y Combinator — Talking to Users",
+      "checked_at": "2026-09-20T01:44:17.269Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=z1iF1c8w5Lg",
+          "http_status": 200,
+          "title": "How To Talk To Users | Startup School - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/z1iF1c8w5Lg-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/z1iF1c8w5Lg",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "playback_error": "frame.waitForFunction: Timeout 8000ms exceeded.",
+          "controls": [
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytp-unmute ytp-popup ytp-button ytp-unmute-animated ytp-unmute-shrink"
+            },
+            {
+              "label": "Play video",
+              "title": "Play video",
+              "class_name": "ytmCuedOverlayPlayButton"
+            },
+            {
+              "label": "Hide player controls",
+              "title": null,
+              "class_name": "ytmA11yStylesHiddenButton"
+            },
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytmVideoInfoLink ytmVideoInfoChannelAvatar"
+            },
+            {
+              "label": "Close",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            },
+            {
+              "label": "Share",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            }
+          ],
+          "visible_message": "How To Talk To Users | Startup School\nY Combinator\nY Combinator\n2.38M subscribers\nWatch on",
+          "screenshot": "test-results/video-verification/z1iF1c8w5Lg-embed.png"
+        }
+      ]
+    },
+    {
+      "video_id": "QRZ_l7cVzzU",
+      "candidate_title": "Y Combinator — Build an MVP",
+      "checked_at": "2026-09-20T01:44:28.433Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=QRZ_l7cVzzU",
+          "http_status": 200,
+          "title": "How to Build An MVP | Startup School - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/QRZ_l7cVzzU-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/QRZ_l7cVzzU",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "playback_error": "frame.waitForFunction: Timeout 8000ms exceeded.",
+          "controls": [
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytp-unmute ytp-popup ytp-button ytp-unmute-animated ytp-unmute-shrink"
+            },
+            {
+              "label": "Play video",
+              "title": "Play video",
+              "class_name": "ytmCuedOverlayPlayButton"
+            },
+            {
+              "label": "Hide player controls",
+              "title": null,
+              "class_name": "ytmA11yStylesHiddenButton"
+            },
+            {
+              "label": null,
+              "title": null,
+              "class_name": "ytmVideoInfoLink ytmVideoInfoChannelAvatar"
+            },
+            {
+              "label": "Close",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            },
+            {
+              "label": "Share",
+              "title": "",
+              "class_name": "ytSpecButtonShapeNextHost ytSpecButtonShapeNextText ytSpecButtonShapeNextOverlay ytSpecButtonShapeNextSizeM ytSpecButtonShapeNextIconOnlyDefault"
+            }
+          ],
+          "visible_message": "How to Build An MVP | Startup School\nY Combinator\nY Combinator\n2.38M subscribers\nWatch on",
+          "screenshot": "test-results/video-verification/QRZ_l7cVzzU-embed.png"
+        }
+      ]
+    },
+    {
+      "video_id": "Fk9BCr5pLTU",
+      "candidate_title": "Y Combinator — Find a Co-Founder",
+      "checked_at": "2026-09-20T01:44:39.292Z",
+      "health_status": "needs_review",
+      "observations": [
+        {
+          "kind": "source",
+          "url": "https://www.youtube.com/watch?v=Fk9BCr5pLTU",
+          "http_status": 200,
+          "title": "How To Find A Co-Founder | Startup School - YouTube",
+          "playback_verified": false,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "screenshot": "test-results/video-verification/Fk9BCr5pLTU-source.png"
+        },
+        {
+          "kind": "embed",
+          "url": "https://www.youtube.com/embed/Fk9BCr5pLTU",
+          "http_status": 200,
+          "title": "BTG video verification",
+          "playback_verified": true,
+          "relevance_verified": false,
+          "metadata_verified": false,
+          "observed_media": {
+            "current_time": 0.018382,
+            "duration": 1237.741
+          },
+          "visible_message": "How To Find A Co-Founder | Startup School\nY Combinator\nY Combinator\n2.38M subscribers\n0:00\nTime elapsed 0 seconds\n/20:37\nTime duration 20 minutes, 37 seconds",
+          "screenshot": "test-results/video-verification/Fk9BCr5pLTU-embed.png"
+        }
+      ]
+    }
+  ]
+}

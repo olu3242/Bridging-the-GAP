@@ -8,10 +8,13 @@ verified skill to mentors and opportunities.
 
 ## Status
 
-Wave 01 (Platform Foundation) is integrated: authentication, profiles, personas,
-organizations, memberships, consent, onboarding, the application shell and
-dashboard, an append-only audit ledger and an idempotent notification
-foundation. See [`docs/canonical/BTG_AI_STATUS.md`](docs/canonical/BTG_AI_STATUS.md).
+W01–W14 are present: identity, diagnostics, pathways, seed-scale learning,
+projects, reviewed evidence, credentials, opportunities and governed workflows.
+See [`docs/canonical/BTG_AI_STATUS.md`](docs/canonical/BTG_AI_STATUS.md).
+
+The canonical 112-lesson Batch 0 design, deterministic draft seed and validation
+commands are in [`curriculum/README.md`](curriculum/README.md). These contracts
+are not a claim that the new curriculum is published or runtime-certified.
 
 Architecture decisions live in
 [`docs/canonical/BTG_AI_CANONICAL.md`](docs/canonical/BTG_AI_CANONICAL.md).

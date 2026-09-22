@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Bell, Sparkles } from "lucide-react";
+import { Bell } from "lucide-react";
+import { BrandLogo } from "@/components/brand/brand-logo";
+import { BRAND_ROUTES } from "@/components/brand/brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/feedback";
 import { NAV_ITEMS } from "./navigation";
@@ -25,12 +27,7 @@ export function AppShell({
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-7xl gap-6 px-4 py-5 sm:px-6 lg:px-8">
       <aside className="hidden w-60 shrink-0 flex-col gap-6 lg:flex">
-        <Link href="/dashboard" className="flex items-center gap-2.5 px-2 text-sm font-semibold tracking-tight">
-          <span className="grid size-8 place-items-center rounded-xl bg-brand/20 text-brand ring-1 ring-brand/40">
-            <Sparkles className="size-4" aria-hidden />
-          </span>
-          BTG AI
-        </Link>
+        <BrandLogo href={BRAND_ROUTES.dashboard} tone="onDark" size={32} className="px-2" />
         <nav aria-label="Main" className="flex flex-col gap-1">
           {items.map((item) => (
             <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} />

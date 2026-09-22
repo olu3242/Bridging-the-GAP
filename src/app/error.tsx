@@ -1,6 +1,9 @@
 "use client";
 import { useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { BrandStatePanel } from "@/components/brand/brand-state";
+import { BRAND_ROUTES } from "@/components/brand/brand";
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -8,13 +11,20 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   }, [error]);
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-5 text-center">
-      <h1 className="text-xl font-semibold tracking-tight">Something went wrong</h1>
-      <p className="text-sm text-ink-muted">
-        We could not load this page. The failure has been logged
-        {error.digest ? ` (reference ${error.digest})` : ""}.
-      </p>
+    <BrandStatePanel
+      title="Something went wrong"
+      tone="error"
+      description={
+        <>
+          We could not load this page. The failure has been logged
+          {error.digest ? ` (reference ${error.digest})` : ""}.
+        </>
+      }
+    >
       <Button onClick={reset}>Try again</Button>
-    </div>
+      <Button asChild variant="secondary">
+        <Link href={BRAND_ROUTES.home}>Back to the home page</Link>
+      </Button>
+    </BrandStatePanel>
   );
 }

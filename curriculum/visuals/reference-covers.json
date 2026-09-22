@@ -1,0 +1,130 @@
+{
+  "AF01": {
+    "asset_path": "curriculum/assets/visuals/AF/AF01/cover/generated/AF01-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/AF/AF01/cover/generated/AF01-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/AF/AF01/cover/source/AF01-cover-master-v1.png",
+    "alt_text": "A capacity gate, pattern-sorting tray and a person considering a card represent fixed rules, learned patterns and human judgment.",
+    "source_hash": "02fcee0cdf6acd8b6db0b2cc8b966ac08c7fc744a32ab95a5ef2b21c91e01fe5",
+    "asset_hash": "0083ad43fe69837e885d54ac146bc534b59d77caaef3de0774cf5042f8936c16",
+    "generation_prompt": "Use case: stylized-concept. Asset: BTG AI AF01 'What Is Artificial Intelligence?' lesson cover, one finished 16:9 editorial illustration, high-resolution. Canonical objective: distinguish learned prediction from fixed rules and human judgment. Canonical example: a campus room capacity is governed by a fixed rule; free-text maintenance classification can use a learned model; uncertain cases need a person. Create a restrained, premium editorial scene with one dominant three-way decision instrument: a tactile ruled gate, a small patterned sorting surface, and a human hand considering a card, all part of one coherent central tabletop composition. Secondary context: a subtle contemporary university notice card, no writing. Abstract modern educational illustration, flat shapes with subtle paper texture and modest depth, precise elegant edges, dark indigo background #141724, muted violet and cyan accents, warm natural hand tone. Keep all essential subject matter inside central 45% width for 4:5 and 1:1 crops, generous empty margins and upper title-safe space. No text, numbers, logos, fake UI, arrows, diagram boxes, robots, brains, holograms, neon, stock imagery or invented outcomes. This is lesson identity artwork, not a concept diagram or assessment solution.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/AF/AF01/cover/generated/AF01-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/AF/AF01/cover/generated/AF01-cover-square-v2.webp",
+      "curriculum/assets/visuals/AF/AF01/cover/generated/AF01-cover-small-v2.webp"
+    ]
+  },
+  "PC07": {
+    "asset_path": "curriculum/assets/visuals/PC/PC07/cover/generated/PC07-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/PC/PC07/cover/generated/PC07-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/PC/PC07/cover/source/PC07-cover-master-v1.png",
+    "alt_text": "A selection aperture isolates two relevant source pages while unrelated material stays outside the context boundary.",
+    "source_hash": "bf53750d00fa15fcc90e6e584946f38fdf044a9c25749f86cee04063b1f45947",
+    "asset_hash": "1bb9475dc96e9520c2504907f05b8d68b5add65f13f1d7377c2500c7a5be494e",
+    "generation_prompt": "Use case: stylized-concept. BTG AI lesson identity cover, 16:9 high-resolution editorial illustration. Premium contemporary academic illustration, dark indigo #141724, restrained violet and cyan, subtle paper texture, flat forms with modest depth. One dominant metaphor and one secondary contextual element. No text, numbers, logos, diagram boxes, arrows, fake dashboards, brains, robots, neon or stock imagery. Keep essential subject inside central 40% width and central 65% height, generous title-safe negative space, safe center crops to 4:5 and 1:1. This is cover art, not an explanatory diagram. Lesson: Context Engineering. Objective: select and organize minimum authorized context. Canonical example: tutor needs approved lesson and learner's own attempt, not other learners' work or a hidden answer key. Dominant metaphor: a precision translucent selection aperture gathering just two relevant unmarked paper fragments into a neat focused bundle; other fragments remain outside the aperture. Secondary element: a quiet layered reference sheet. Show information selection and boundary, not a padlock. No assessment answers.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/PC/PC07/cover/generated/PC07-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/PC/PC07/cover/generated/PC07-cover-square-v2.webp",
+      "curriculum/assets/visuals/PC/PC07/cover/generated/PC07-cover-small-v2.webp"
+    ]
+  },
+  "AA07": {
+    "asset_path": "curriculum/assets/visuals/AA/AA07/cover/generated/AA07-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/AA/AA07/cover/generated/AA07-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/AA/AA07/cover/source/AA07-cover-master-v1.png",
+    "alt_text": "A person holds an approval gate around a narrow proposal while a wider changed proposal waits outside its scope.",
+    "source_hash": "e64a711b780f8432ec30d91894ecfb9b71f5f351ba10ba556f30e526aa96d43e",
+    "asset_hash": "d12cd6156c27458aeec1a4b304d5b6475f364a0eb1bdb76539300aa9c56dc48d",
+    "generation_prompt": "Use case: stylized-concept. BTG AI lesson identity cover, 16:9 high-resolution editorial illustration. Premium contemporary academic illustration, dark indigo #141724, restrained violet and cyan, subtle paper texture, flat forms with modest depth. One dominant metaphor and one secondary contextual element. No text, numbers, logos, diagram boxes, arrows, fake dashboards, brains, robots, neon or stock imagery. Keep essential subject inside central 40% width and central 65% height, generous title-safe negative space, safe center crops to 4:5 and 1:1. This is cover art, not an explanatory diagram. Lesson: Human Approval & Guardrails. Objective: bind approval to exact proposal and recheck scope before side effects. Canonical example: changing a message's recipients from 20 to 200 invalidates prior approval. Dominant metaphor: an adjustable aperture gate held by a human hand at a paused decision point; a narrow paper ribbon fits its approved opening while a visibly wider folded ribbon waits beside it. Secondary element: a blank approval seal lying unused. No checkmark suggesting the wider proposal is approved. Natural dark skin hand, contemporary university technology context, no ethnic motifs.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/AA/AA07/cover/generated/AA07-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/AA/AA07/cover/generated/AA07-cover-square-v2.webp",
+      "curriculum/assets/visuals/AA/AA07/cover/generated/AA07-cover-small-v2.webp"
+    ]
+  },
+  "SE10": {
+    "asset_path": "curriculum/assets/visuals/SE/SE10/cover/generated/SE10-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/SE/SE10/cover/generated/SE10-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/SE/SE10/cover/source/SE10-cover-master-v1.png",
+    "alt_text": "Learner and course tabs fit together in one record drawer, representing related data protected by a unique enrollment constraint.",
+    "source_hash": "35afa0145ebcd5f98e4fdfd50922d56039757ec1a9c5bdf96387937716d54b37",
+    "asset_hash": "2901015a4188655e594c1a515fcd4a3964eb14c3a444a3012d1711dd333aba31",
+    "generation_prompt": "Use case: stylized-concept. BTG AI educational lesson cover, high-resolution 16:9. One dominant editorial visual metaphor, one subtle secondary context element, no explanatory diagram. Sophisticated matte cut-paper illustration, indigo #141724 background, restrained cyan and violet, quiet warm neutrals, tactile paper, soft subtle depth. Essential subject grouped within the central 40% of the frame for square and 4:5 crops, generous empty border and title-safe upper margin. No text, letters, numerals, chart values, logos, robots, brains, neon or fictitious dashboards. Lesson Databases: model relationships and enforce invariants in persistent storage. Canonical example: learner/course enrollment references both IDs and enforces a unique pair against concurrent duplicate requests. Dominant metaphor: two keyed filing tabs joined into a single precisely fitted record drawer, while a duplicate tab rests outside the slot. Secondary element: two small blank index cards representing learner and course. The central tangible join and one-slot constraint should identify relational data. Not a database architecture diagram.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/SE/SE10/cover/generated/SE10-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/SE/SE10/cover/generated/SE10-cover-square-v2.webp",
+      "curriculum/assets/visuals/SE/SE10/cover/generated/SE10-cover-small-v2.webp"
+    ]
+  },
+  "DA08": {
+    "asset_path": "curriculum/assets/visuals/DA/DA08/cover/generated/DA08-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/DA/DA08/cover/generated/DA08-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/DA/DA08/cover/source/DA08-cover-master-v1.png",
+    "alt_text": "A straightedge aligns two symbolic columns to a shared baseline, emphasizing honest comparison rather than exaggerated differences.",
+    "source_hash": "fbac198292b73577f3ce38cfbbadd83334fbe3ef94f6c09cb0b580bd3655fb2f",
+    "asset_hash": "9c3c6a7dca1b95fda580b11e2e2c6de2e3b5cf6881fb72cf4f741fd6c744f768",
+    "generation_prompt": "Use case: stylized-concept. BTG AI educational lesson cover, high-resolution 16:9. One dominant editorial visual metaphor, one subtle secondary context element, no explanatory diagram. Sophisticated matte cut-paper illustration, indigo #141724 background, restrained cyan and violet, quiet warm neutrals, tactile paper, soft subtle depth. Essential subject grouped within the central 40% of the frame for square and 4:5 crops, generous empty border and title-safe upper margin. No text, letters, numerals, chart values, logos, robots, brains, neon or fictitious dashboards. Lesson Data Visualization: choose honest visual comparison. Canonical example: truncated bar-chart baseline can exaggerate a small completion-rate difference; preserve appropriate baseline, rate labels and cohort sizes in real analysis. Dominant metaphor: a drafting straightedge leveling the base of two abstract paper columns, with an offset loose baseline strip beside it. Secondary element: a blank data sheet. This is a symbolic editorial motif, not an actual data chart: no ticks, quantities, axes labels or implied measured outcomes. Emphasize fair comparison and scale.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/DA/DA08/cover/generated/DA08-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/DA/DA08/cover/generated/DA08-cover-square-v2.webp",
+      "curriculum/assets/visuals/DA/DA08/cover/generated/DA08-cover-small-v2.webp"
+    ]
+  },
+  "CS03": {
+    "asset_path": "curriculum/assets/visuals/CS/CS03/cover/generated/CS03-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/CS/CS03/cover/generated/CS03-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/CS/CS03/cover/source/CS03-cover-master-v1.png",
+    "alt_text": "Distinct identity tabs match only their own document sleeves, representing record ownership rather than blanket access.",
+    "source_hash": "7e439d13595b774195f902e93797ab4708bbd45192ea51ae0dcf6e0fda8ceb8a",
+    "asset_hash": "d4756e16eebe0b5f67193e37508c5876570748e64d670c90fe49362fa3ace721",
+    "generation_prompt": "Use case: stylized-concept. BTG AI lesson cover, one high-resolution 16:9 editorial illustration. Restrained premium academic matte paper illustration, dark indigo #141724, violet and cyan accents, soft depth, strong focal subject, ample negative space for semantic UI title outside artwork. Central subject must fit inside central 40% width and 65% height, safe for 4:5 and square center crops. One metaphor and one contextual detail, no infographic. No text, letters, numbers, logos, arrows, diagram boxes, robots, brains, hooded hackers, neon or fake UI. Lesson Authorization & Least Privilege. Objective: enforce ownership and role permissions on every protected operation. Canonical example: authenticated learner A can edit their own task but cannot edit learner B's task by changing its ID. Metaphor: two neighboring personal document sleeves with distinct geometric identity tabs; a single matching shaped access token aligns only with its own sleeve and visibly does not fit the other. Secondary element: a quiet boundary divider between sleeves. Do not use a padlock. Focus on scoped fit and ownership, not security theater.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/CS/CS03/cover/generated/CS03-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/CS/CS03/cover/generated/CS03-cover-square-v2.webp",
+      "curriculum/assets/visuals/CS/CS03/cover/generated/CS03-cover-small-v2.webp"
+    ]
+  },
+  "EI06": {
+    "asset_path": "curriculum/assets/visuals/EI/EI06/cover/generated/EI06-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/EI/EI06/cover/generated/EI06-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/EI/EI06/cover/source/EI06-cover-master-v1.png",
+    "alt_text": "A learner tests a small manual room-booking board before investing in automation, with an observation notebook nearby.",
+    "source_hash": "3f561ff940941522c2d0bd039b0fdc6b0cc1de5098ed3edd66dad9230c9fe3b0",
+    "asset_hash": "1bb7770ebe857d132b6911901e11348461bc2626c1afa7a765bf3c71bc1296fc",
+    "generation_prompt": "Use case: stylized-concept. BTG AI lesson cover, one high-resolution 16:9 editorial illustration. Restrained premium academic matte paper illustration, dark indigo #141724, violet and cyan accents, soft depth, strong focal subject, ample negative space for semantic UI title outside artwork. Central subject must fit inside central 40% width and 65% height, safe for 4:5 and square center crops. One metaphor and one contextual detail, no infographic. No text, letters, numbers, logos, arrows, diagram boxes, robots, brains, hooded hackers, neon or fake UI. Lesson Building an MVP. Objective: smallest experiment testing a consequential assumption. Canonical example: manually coordinate a small authorized group's room bookings using a shared schedule before building automated matching; measure bookings and effort. Metaphor: a small handmade room-booking prototype assembled from a few movable paper schedule tabs, with a human hand testing one piece. Secondary element: an unmarked observation notebook. Natural African university learner hand, modern workspace. Show bounded experimentation, not launch celebration, rocket or guaranteed growth.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/EI/EI06/cover/generated/EI06-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/EI/EI06/cover/generated/EI06-cover-square-v2.webp",
+      "curriculum/assets/visuals/EI/EI06/cover/generated/EI06-cover-small-v2.webp"
+    ]
+  },
+  "VC10": {
+    "asset_path": "curriculum/assets/visuals/VC/VC10/cover/generated/VC10-cover-v2.webp",
+    "thumbnail_path": "curriculum/assets/visuals/VC/VC10/cover/generated/VC10-cover-thumbnail-v2.webp",
+    "source_path": "curriculum/assets/visuals/VC/VC10/cover/source/VC10-cover-master-v1.png",
+    "alt_text": "A persistent record remains inside a refresh ring while a separate access boundary represents testing another user’s permissions.",
+    "source_hash": "21f62f877f96f9b0f335495a5d71c717d0f756bc76c67460f31a152351155b9f",
+    "asset_hash": "2cd4294810fa3516311575277178e4c9e681f808535ce8c7527eb1a8c3a232af",
+    "generation_prompt": "Use case: stylized-concept. BTG AI VC10 Testing & E2E Verification lesson identity cover. Canonical objective: verify user journeys and negative cases against real persisted behavior. Canonical example: creating a task visible in browser memory is insufficient; reload through real backend and verify a second user cannot edit it, recording skipped checks as unverified. Create one premium editorial matte-paper illustration, 16:9 wide. Dominant metaphor: a solid physical record block visibly retained behind a translucent refresh ring; a separate mismatched access tab rests at a boundary nearby. Secondary context: a small folded test checklist with blank lines, no checkmarks implying tests ran. Center the whole symbolic arrangement in middle 40% width with large indigo #141724 margins for portrait/square crops and title-safe space above. Cyan and lavender edge accents, subtle paper texture and soft depth. No laptop, terminal text, code, arrows, architecture boxes, numbers, letters, logos, robot, glowing brain, neon or futuristic dashboard. This is abstract cover artwork about persistence and independent verification, not a diagram or evidence of real executed tests.",
+    "generation_provider": "builtin_image_gen",
+    "generation_model": null,
+    "responsive_variants": [
+      "curriculum/assets/visuals/VC/VC10/cover/generated/VC10-cover-portrait-v2.webp",
+      "curriculum/assets/visuals/VC/VC10/cover/generated/VC10-cover-square-v2.webp",
+      "curriculum/assets/visuals/VC/VC10/cover/generated/VC10-cover-small-v2.webp"
+    ]
+  }
+}

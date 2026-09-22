@@ -4,6 +4,7 @@
  */
 export const AUDIT_ACTIONS = {
   profileUpdated: "identity.profile.updated",
+  onboardingStarted: "identity.onboarding.started",
   onboardingStepCompleted: "identity.onboarding.step_completed",
   onboardingCompleted: "identity.onboarding.completed",
   consentRecorded: "identity.consent.recorded",

@@ -1,40 +1,19 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AuditEventInput } from "@/domain/shared/audit";
-import type { Actor } from "@/domain/identity/actor";
 
 /**
- * E16 — the only write path into the audit ledger. The database stamps the
- * actor from the session, so a forged actor is impossible.
+ * E16 — there is deliberately no application-side write path into the audit
+ * ledger.
+ *
+ * `public.record_audit_event` is SECURITY DEFINER and is called from inside
+ * every governed command, which is where a lifecycle fact is actually known.
+ * A client-callable wrapper used to live here with no callers, and the matching
+ * grant let any authenticated session write arbitrary actions into the ledger
+ * at any severity — including the lifecycle actions `outcome_timeline_view`
+ * reads, so a learner could write themselves a history. Migration
+ * 20260918003800 revoked that grant; see tests/db/grants.test.ts.
+ *
+ * If a future surface genuinely needs to record something, add a narrow
+ * command for it in SQL that validates its own action namespace, rather than
+ * re-opening the general one.
  */
-export async function recordAudit(
-  supabase: SupabaseClient,
-  actor: Actor,
-  input: AuditEventInput & { correlationId?: string | null },
-): Promise<void> {
-  const { error } = await supabase.rpc("record_audit_event", {
-    p_action: input.action,
-    p_object_type: input.objectType,
-    p_object_id: input.objectId ?? null,
-    p_organization_id: input.organizationId ?? null,
-    p_actor_persona: input.actorPersona ?? actor.primaryPersona,
-    p_before: input.before ?? null,
-    p_after: input.after ?? null,
-    p_severity: input.severity ?? "info",
-    p_correlation_id: input.correlationId ?? null,
-    p_workflow: input.workflow ?? null,
-    p_policy_version: input.policyVersion ?? null,
-    p_metadata: input.metadata ?? {},
-  });
-
-  if (error) {
-    // Audit must never silently vanish, but it also must not mask the outcome
-    // of an action that already committed.
-    console.error("[audit] failed to record event", {
-      action: input.action,
-      objectType: input.objectType,
-      correlationId: input.correlationId,
-      error: error.message,
-    });
-  }
-}
+export {};

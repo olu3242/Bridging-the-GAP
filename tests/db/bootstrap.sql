@@ -14,7 +14,30 @@ create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text unique,
   raw_user_meta_data jsonb not null default '{}'::jsonb,
+  -- GoTrue records which providers an account can sign in with here.
+  raw_app_meta_data jsonb not null default '{}'::jsonb,
+  email_confirmed_at timestamptz,
   created_at timestamptz not null default now()
+);
+
+alter table auth.users add column if not exists raw_app_meta_data jsonb not null default '{}'::jsonb;
+alter table auth.users add column if not exists email_confirmed_at timestamptz;
+
+/*
+ * One row per auth method on an account. Supabase links a second provider onto
+ * the *same* auth.users row rather than creating another user, which is the
+ * behaviour the identity tests rely on: the signup trigger fires once, so an
+ * account reached through both Google and a password still has exactly one
+ * application identity.
+ */
+create table if not exists auth.identities (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  provider text not null,
+  provider_id text not null,
+  identity_data jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique (provider, provider_id)
 );
 
 create or replace function auth.uid()

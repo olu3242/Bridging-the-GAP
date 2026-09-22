@@ -1,0 +1,21 @@
+{
+  "valid": true,
+  "errors": [],
+  "coverage": {
+    "domains": 11,
+    "lessons": 112,
+    "complete_contracts": 112,
+    "assessments": 112,
+    "questions": 224,
+    "competencies": 24,
+    "projects": 11,
+    "video_assets": 8,
+    "verified_videos": 0,
+    "pending_video_assets": 8,
+    "video_required_lessons": 101,
+    "pending_video_lessons": 101,
+    "mapped_video_lessons": 13,
+    "unmapped_video_lessons": 88,
+    "published_lessons": 0
+  }
+}
