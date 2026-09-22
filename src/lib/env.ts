@@ -22,9 +22,26 @@ import { z } from "zod";
  * than the failure it replaced.
  */
 
-/** Reads a variable, treating blank or whitespace-only as unset. */
-function read(name: string): string | undefined {
-  const raw = process.env[name];
+/**
+ * The raw values, read through *literal* `process.env.NEXT_PUBLIC_X` accesses.
+ *
+ * This shape is load-bearing, not style. Next.js substitutes `NEXT_PUBLIC_*`
+ * at build time only where it can see the property statically; a computed
+ * `process.env[name]` is left alone, which would quietly turn these into
+ * runtime-only reads and break the browser client, where `process.env` does
+ * not exist at all. Read per call rather than once at module load so a test
+ * can vary the environment.
+ */
+function rawEnv() {
+  return {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  } as const;
+}
+
+/** Treats blank or whitespace-only as unset. */
+function usable(raw: string | undefined): string | undefined {
   if (typeof raw !== "string") return undefined;
   const trimmed = raw.trim();
   return trimmed.length > 0 ? trimmed : undefined;
@@ -55,13 +72,24 @@ export const REQUIRED_PUBLIC_VARS = [
 
 /**
  * Names a previous configuration used. They are only ever *reported*, never
- * read: see the note above on why reading them would be worse than failing.
+ * read as values: see the note above on why reading them would be worse than
+ * failing. Static accesses again, and guarded, because this runs wherever the
+ * parse failed — including a browser bundle, which has no `process` at all.
  */
-const LEGACY_ALIASES: Record<string, string> = {
+const LEGACY_ALIASES = {
   NEXT_PUBLIC_SUPABASE_URL: "NEXT_SUPABASE_URL",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "NEXT_SUPABASE_ANON_KEY",
-  NEXT_PUBLIC_SITE_URL: "NEXT_SITE_URL",
-};
+} as const;
+
+/** Whether a legacy name is carrying the value the new name should have. */
+function legacyIsSet(forName: keyof typeof LEGACY_ALIASES): boolean {
+  if (typeof process === "undefined") return false;
+  const raw =
+    forName === "NEXT_PUBLIC_SUPABASE_URL"
+      ? process.env.NEXT_SUPABASE_URL
+      : process.env.NEXT_SUPABASE_ANON_KEY;
+  return usable(raw) !== undefined;
+}
 
 /**
  * Says what is wrong with each variable in terms of what to do about it, so the
@@ -71,15 +99,15 @@ const LEGACY_ALIASES: Record<string, string> = {
  */
 function describeMisconfiguration(): string[] {
   const problems: string[] = [];
+  const env = rawEnv();
 
   for (const name of REQUIRED_PUBLIC_VARS) {
-    const raw = process.env[name];
+    const raw = env[name];
     const legacy = LEGACY_ALIASES[name];
-    const legacyIsSet = typeof process.env[legacy] === "string" && process.env[legacy]!.trim() !== "";
 
     if (raw === undefined) {
       problems.push(
-        legacyIsSet
+        legacyIsSet(name)
           ? `${name} is not set, but ${legacy} is — rename it: only NEXT_PUBLIC_* reaches the browser.`
           : `${name} is not set.`,
       );
@@ -88,7 +116,7 @@ function describeMisconfiguration(): string[] {
     }
   }
 
-  const siteUrl = read("NEXT_PUBLIC_SITE_URL");
+  const siteUrl = usable(env.NEXT_PUBLIC_SITE_URL);
   if (siteUrl !== undefined) {
     try {
       new URL(withScheme(siteUrl));
@@ -105,10 +133,11 @@ let cached: PublicEnv | null = null;
 export function publicEnv(): PublicEnv {
   if (cached) return cached;
 
-  const siteUrl = read("NEXT_PUBLIC_SITE_URL");
+  const env = rawEnv();
+  const siteUrl = usable(env.NEXT_PUBLIC_SITE_URL);
   const parsed = publicSchema.safeParse({
-    NEXT_PUBLIC_SUPABASE_URL: read("NEXT_PUBLIC_SUPABASE_URL"),
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: read("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    NEXT_PUBLIC_SUPABASE_URL: usable(env.NEXT_PUBLIC_SUPABASE_URL),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: usable(env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     // Blank is treated as unset so the default applies, and a bare host is
     // given a scheme rather than rejected.
     NEXT_PUBLIC_SITE_URL: siteUrl === undefined ? DEFAULT_SITE_URL : withScheme(siteUrl),
@@ -135,7 +164,8 @@ export function publicEnv(): PublicEnv {
  * that is present but blank counts as absent, exactly as `publicEnv` treats it.
  */
 export function isSupabaseConfigured(): boolean {
-  return REQUIRED_PUBLIC_VARS.every((name) => read(name) !== undefined);
+  const env = rawEnv();
+  return REQUIRED_PUBLIC_VARS.every((name) => usable(env[name]) !== undefined);
 }
 
 /** Test seam: the module caches the parsed environment for the process. */
