@@ -8,7 +8,8 @@ import { AssignProjectButton } from "@/components/app/assign-project-button";
 import { assignProjectAction } from "@/server/actions/projects";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { listBriefsForCompetency, listProjects } from "@/server/services/project-service";
 import { getActivePathway, getPathwaySteps } from "@/server/services/pathway-service";
 import { PROJECT_STATUS_COPY, type ProjectStatus } from "@/domain/evidence/verification";
@@ -18,7 +19,7 @@ export const metadata: Metadata = { title: "Projects" };
 
 export default async function ProjectsPage() {
   const actor = await requireActor();
-  assertCan(actor, "project.manage_own");
+  requireCapability(actor, "project.manage_own");
 
   const supabase = await createSupabaseServerClient();
   const [projects, pathway] = await Promise.all([

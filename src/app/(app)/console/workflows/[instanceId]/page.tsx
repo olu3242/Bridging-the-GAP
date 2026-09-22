@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge, EmptyState } from "@/components/ui/feedback";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getWorkflowTimeline, listWorkflowInstances } from "@/server/services/workflow-service";
 import { formatRelative } from "@/lib/utils";
 
@@ -22,7 +23,7 @@ export default async function WorkflowRunPage({
   params: Promise<{ instanceId: string }>;
 }) {
   const [{ instanceId }, actor] = await Promise.all([params, requireActor()]);
-  assertCan(actor, "operator.console.view");
+  requireCapability(actor, "operator.console.view");
 
   const supabase = await createSupabaseServerClient();
   const [instances, timeline] = await Promise.all([

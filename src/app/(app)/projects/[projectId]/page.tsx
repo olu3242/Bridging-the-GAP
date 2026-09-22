@@ -8,7 +8,8 @@ import { Alert, Badge } from "@/components/ui/feedback";
 import { EvidenceForm } from "@/components/app/evidence-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import {
   getEvidenceReviews,
   getProject,
@@ -32,7 +33,7 @@ export default async function ProjectPage({
     searchParams,
     requireActor(),
   ]);
-  assertCan(actor, "project.manage_own");
+  requireCapability(actor, "project.manage_own");
 
   const supabase = await createSupabaseServerClient();
   const project = (await getProject(supabase, projectId)) as unknown as {

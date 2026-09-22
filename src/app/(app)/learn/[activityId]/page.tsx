@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireContext } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getCurriculumLesson, getLessonVideo } from "@/server/services/curriculum-service";
 import { LessonVideo } from "@/components/app/lesson-video";
 import { LessonAttemptForm, type LessonAttempt } from "@/components/app/lesson-attempt";
@@ -16,7 +17,7 @@ export const metadata = { title: "Lesson" };
 
 export default async function CurriculumLessonPage({ params }: { params: Promise<{ activityId: string }> }) {
   const [{ activityId }, { supabase, actor }] = await Promise.all([params, requireContext()]);
-  assertCan(actor, "profile.read_own");
+  requireCapability(actor, "profile.read_own");
   if (!z.guid().safeParse(activityId).success) notFound();
   const lesson = await getCurriculumLesson(supabase, activityId);
   if (!lesson) notFound();

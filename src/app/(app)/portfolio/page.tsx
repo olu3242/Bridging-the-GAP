@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge, EmptyState } from "@/components/ui/feedback";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import { getCredentials, getPortfolio } from "@/server/services/project-service";
 import { LEVEL_LABELS, type CompetencyLevel } from "@/domain/competency/levels";
 import { formatRelative } from "@/lib/utils";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Portfolio" };
 
 export default async function PortfolioPage() {
   const actor = await requireActor();
-  assertCan(actor, "credential.read_own");
+  requireCapability(actor, "credential.read_own");
 
   const supabase = await createSupabaseServerClient();
   const [skills, credentials] = await Promise.all([

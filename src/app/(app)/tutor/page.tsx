@@ -6,7 +6,8 @@ import { EmptyState } from "@/components/ui/feedback";
 import { TutorPanel } from "@/components/app/tutor-panel";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireActor } from "@/server/services/actor";
-import { assertCan } from "@/domain/identity/actor";
+import { requireCapability } from "@/server/services/page-guard";
+
 import {
   getTutorContext,
   isTutorProviderConfigured,
@@ -25,7 +26,7 @@ export default async function TutorPage({
   searchParams: Promise<{ step?: string }>;
 }) {
   const [{ step }, actor] = await Promise.all([searchParams, requireActor()]);
-  assertCan(actor, "learner.dashboard.view");
+  requireCapability(actor, "learner.dashboard.view");
 
   const supabase = await createSupabaseServerClient();
   const pathway = await getActivePathway(supabase, actor.profileId);
