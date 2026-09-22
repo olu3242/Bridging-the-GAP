@@ -1,22 +1,65 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import {
+  Award,
+  BarChart3,
+  BookOpen,
+  Bot,
+  Briefcase,
+  Building2,
+  CircleDollarSign,
+  ClipboardCheck,
+  Database,
+  Gauge,
+  Hammer,
+  Landmark,
+  LayoutDashboard,
+  Lightbulb,
+  Network,
+  Route,
+  TrendingUp,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import type { NavIconKey } from "./navigation";
 import { cn } from "@/lib/utils";
+
+const ICONS: Record<NavIconKey, LucideIcon> = {
+  "layout-dashboard": LayoutDashboard,
+  "circle-dollar-sign": CircleDollarSign,
+  route: Route,
+  "book-open": BookOpen,
+  bot: Bot,
+  briefcase: Briefcase,
+  hammer: Hammer,
+  database: Database,
+  lightbulb: Lightbulb,
+  network: Network,
+  award: Award,
+  gauge: Gauge,
+  users: Users,
+  "trending-up": TrendingUp,
+  "clipboard-check": ClipboardCheck,
+  "building-2": Building2,
+  landmark: Landmark,
+  "bar-chart-3": BarChart3,
+};
 
 export function NavLink({
   href,
   label,
-  icon: Icon,
+  icon,
   compact = false,
 }: {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: NavIconKey;
   compact?: boolean;
 }) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
+  const Icon = ICONS[icon];
 
   return (
     <Link
