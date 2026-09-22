@@ -13,7 +13,7 @@ export function Hero() {
     <section className="hero">
       <div className="wrap hero-inner">
         <div className="hero-copy">
-          <p className="eyebrow-pill">For Nigerian students — with a global horizon</p>
+          <p className="eyebrow-pill">For learners everywhere — built for global opportunity</p>
           <h1>
             Learn AI. Build with AI.
             <br />
@@ -48,7 +48,7 @@ export function Hero() {
               height={700}
               priority
               sizes="(max-width: 980px) 460px, 46vw"
-              alt="A Nigerian student in a BTG AI hoodie, looking toward a city skyline and bridge at dusk"
+              alt="A BTG AI learner looking toward a city skyline and bridge at dusk"
             />
           </div>
 
