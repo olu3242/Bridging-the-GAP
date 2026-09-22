@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
   const fail = (code: string) =>
     NextResponse.redirect(`${origin}${BRAND_ROUTES.signIn}?error=${encodeURIComponent(code)}`);
 
-  if (!isSupabaseConfigured()) return fail("config_missing");
-
-  // The provider reports a cancelled consent screen or its own failure here,
-  // with no code at all.
+  // What the callback itself can answer comes first. A cancelled consent screen
+  // and a link that carries no code are both fully decided by the query string,
+  // so they must report what actually happened rather than being masked by a
+  // configuration check they never reached.
   const providerError = searchParams.get("error") ?? searchParams.get("error_code");
   if (providerError) {
     return fail(oauthErrorCode(providerError, searchParams.get("error_description")));
@@ -37,6 +37,9 @@ export async function GET(request: NextRequest) {
 
   const code = searchParams.get("code");
   if (!code) return fail("missing_code");
+
+  // Only the exchange needs a project, so this is where a missing one surfaces.
+  if (!isSupabaseConfigured()) return fail("config_missing");
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
