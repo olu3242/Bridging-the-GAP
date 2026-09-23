@@ -49,3 +49,9 @@ next-env.d.ts
 
 curriculum-core.txt
 missing-curriculum.txt
+.env*.local
+
+BTG Key.txt
+supabase/.temp/
+btg-db-failures.txt
+btg-db-last3.txt

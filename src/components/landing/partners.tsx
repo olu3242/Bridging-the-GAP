@@ -4,8 +4,8 @@ import { getStartedAs } from "./links";
 const PARTNERS = [
   {
     title: "For universities",
-    body: "Sponsor cohorts, see program outcomes, and give students a practical AI track that complements what they're already studying.",
-    cta: "Talk to us about your campus →",
+    body: "Sponsor cohorts, see program outcomes, and give learners a practical AI track that complements what they're already studying.",
+    cta: "Talk to us about your institution →",
     intent: "institution" as const,
   },
   {
@@ -28,7 +28,7 @@ export function Partners() {
       <div className="wrap">
         <div className="section-head">
           <h2>Built for the whole ecosystem</h2>
-          <p>Students are the center of BTG AI, but they don&apos;t get there alone.</p>
+          <p>Learners are at the center of BTG AI, but they don&apos;t get there alone.</p>
         </div>
 
         <div className="partner-grid">

@@ -23,7 +23,7 @@ export default async function CurriculumLessonPage({ params }: { params: Promise
   if (!lesson) notFound();
   const media = await getLessonVideo(supabase, activityId);
   const content = lesson.contract;
-  const visualResult = await supabase.from("curriculum_visual_assets").select("id,visual_type,status,metadata").eq("activity_id", activityId).eq("status", "published");
+  const visualResult = await supabase.from("curriculum_visual_assets").select("id,visual_type,status,metadata,storage_object_path").eq("activity_id", activityId).eq("status", "published");
   if (visualResult.error) throw fromPostgresError(visualResult.error, "We could not load lesson visuals.");
   const visuals = (visualResult.data ?? []) as LessonVisualRow[];
   const visual = (slot: string, equivalent: string) => <LessonVisual slot={slot} equivalent={equivalent} asset={visuals.find(asset => asset.visual_type === slot)} />;
@@ -42,30 +42,30 @@ export default async function CurriculumLessonPage({ params }: { params: Promise
     <header>
       <p className="text-sm text-ink-subtle">{lesson.domain_code} · {lesson.lesson_code} · Version {lesson.version} · {lesson.status}</p>
       <h1 className="mt-2 text-3xl font-semibold">{content.title}</h1>
-      <p className="mt-2 text-ink-muted">{content.description}</p>
+      <p className="mt-2 text-ink">{content.description}</p>
       <p className="mt-2 text-sm text-ink-subtle">{content.estimated_minutes} minutes · {content.difficulty}</p>
     </header>
     {visual("cover", content.learning_objective.text)}
     {lesson.status === "draft" ? <p role="status" className="rounded-xl border border-white/10 p-4">Content preview. This version is unpublished and cannot award progress, assessment results or credentials.</p> : null}
-    <section><h2 className="text-xl font-semibold">Learning objective</h2><p className="mt-2">{content.learning_objective.text}</p>
-      <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-ink-muted">{content.measurable_outcomes.map(outcome => <li key={outcome.id}>{outcome.text}</li>)}</ul>
+    <section><h2 className="text-xl font-semibold">Learning objective</h2><p className="mt-2 text-ink">{content.learning_objective.text}</p>
+      <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-ink">{content.measurable_outcomes.map(outcome => <li key={outcome.id}>{outcome.text}</li>)}</ul>
     </section>
     {lesson.status === "published" ? <LessonViewed activityId={activityId} /> : null}
     <LessonVideo {...media} activityId={lesson.status === "published" ? activityId : undefined} resumePosition={progress.data?.last_position} />
-    {lesson.status === "published" && progress.data ? <p className="text-sm text-ink-muted">
+    {lesson.status === "published" && progress.data ? <p className="text-sm text-ink-muted" data-testid="playback-summary">
       Recorded playback: {Math.floor(progress.data.watched_seconds)} seconds · Video threshold {progress.data.threshold_reached ? "reached" : "not reached"} · Lesson {progress.data.completed ? "completed" : "incomplete"}.
     </p> : null}
     {content.instructional_content.map(section => <section key={section.section_id} id={section.section_id}>
-      <h2 className="text-xl font-semibold">{section.heading}</h2><p className="mt-3 whitespace-pre-wrap leading-relaxed text-ink-muted">{section.text}</p>
+      <h2 className="text-xl font-semibold">{section.heading}</h2><p className="mt-3 whitespace-pre-wrap leading-relaxed text-ink">{section.text}</p>
       {visual(section.section_id.endsWith(".instruction") ? "concept" : section.section_id.endsWith(".worked-example") ? "worked_example" : "misconception", section.text)}
     </section>)}
-    <section><h2 className="text-xl font-semibold">Practice</h2><ol className="mt-3 list-decimal space-y-2 pl-5">{content.practice.instructions.map(instruction => <li key={instruction}>{instruction}</li>)}</ol>
+    <section><h2 className="text-xl font-semibold">Practice</h2><ol className="mt-3 list-decimal space-y-2 pl-5 text-ink">{content.practice.instructions.map(instruction => <li key={instruction}>{instruction}</li>)}</ol>
       {visual("practice_evidence", content.practice.instructions.join("\n"))}
       <details className="mt-3"><summary>Starter material</summary><pre className="mt-2 overflow-auto rounded-lg bg-white/5 p-3 text-xs">{JSON.stringify(content.practice.starter_material, null, 2)}</pre></details>
       <details className="mt-3"><summary>Hints</summary><ul className="mt-2 list-disc pl-5">{content.practice.hints.map(hint => <li key={hint}>{hint}</li>)}</ul></details>
     </section>
-    <section><h2 className="text-xl font-semibold">Checkpoint</h2><ol className="mt-3 list-decimal space-y-3 pl-5">{content.checkpoint.questions.map(question => <li key={question.question_id} className="whitespace-pre-wrap">{question.prompt}</li>)}</ol></section>
-    <section><h2 className="text-xl font-semibold">Review and next action</h2><p className="mt-2 text-ink-muted">{content.progression.remediation_rule.next_action}</p>
+    <section><h2 className="text-xl font-semibold">Checkpoint</h2><ol className="mt-3 list-decimal space-y-3 pl-5 text-ink">{content.checkpoint.questions.map(question => <li key={question.question_id} className="whitespace-pre-wrap">{question.prompt}</li>)}</ol></section>
+    <section><h2 className="text-xl font-semibold">Review and next action</h2><p className="mt-2 text-ink">{content.progression.remediation_rule.next_action}</p>
       <p className="mt-2 text-sm text-ink-subtle">Prerequisites: {content.prerequisites.join(", ") || "None"}. Competencies: {content.competency_ids.join(", ")}.</p>
     </section>
     {lesson.status === "published" ? <LessonAttemptForm activityId={activityId} attempt={attempts.data as LessonAttempt | null} /> : null}

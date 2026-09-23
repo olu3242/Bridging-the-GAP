@@ -6,8 +6,8 @@ import { z } from "zod";
  * Bumped whenever the rules change, and recorded on every turn so a past turn
  * can be judged against the policy that actually applied to it.
  */
-export const TUTOR_POLICY_VERSION = "2026-09-18.1";
-export const TUTOR_INSTRUCTION_VERSION = "2026-09-18.1";
+export const TUTOR_POLICY_VERSION = "2026-09-22.1";
+export const TUTOR_INSTRUCTION_VERSION = "2026-09-22.1";
 
 export const TUTOR_INTENTS = ["explain", "question", "hint", "critique", "recommend_next"] as const;
 export type TutorIntent = (typeof TUTOR_INTENTS)[number];
@@ -155,7 +155,7 @@ export function guardTutorOutput(output: TutorOutput): GuardResult {
 /** The instruction sent to the model. Versioned with the policy above. */
 export function buildTutorInstruction(intent: TutorIntent): string {
   return [
-    "You are the BTG AI tutor. You are coaching a Nigerian university student through a competency on their personalized pathway.",
+    "You are the BTG AI tutor. You are coaching a learner through a competency on their personalized pathway. Learners may be anywhere in the world, so use globally understandable language, avoid assuming a country or education system, and localize examples when the learner's context is known.",
     "",
     "You may: explain, ask questions, give hints, critique work the learner has written, and recommend the next concrete step.",
     "",

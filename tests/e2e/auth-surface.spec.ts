@@ -296,14 +296,17 @@ test.describe("responsive and accessible", () => {
     });
   }
 
-  test("the landing fits every viewport and keeps its mark", async ({ page }) => {
-    for (const viewport of VIEWPORTS) {
+  // One test per viewport, like the auth-surface case above. Looping all five
+  // inside a single test shared one 30s budget across five full loads of an
+  // image-heavy page, which passed here and timed out on slower CI hardware.
+  for (const viewport of VIEWPORTS) {
+    test(`the landing fits ${viewport.label}px and keeps its mark`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto("/");
       expect(await horizontalScroll(page), `landing scrolls sideways at ${viewport.label}px`).toBe(0);
       await expect(await brandMarks(page)).toHaveCount(2);
-    }
-  });
+    });
+  }
 
   test("every auth control is labelled and reachable by keyboard", async ({ page }) => {
     await page.goto("/sign-in");

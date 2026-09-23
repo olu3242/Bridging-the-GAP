@@ -11,7 +11,7 @@ test.describe("canonical landing", () => {
 
     await expect(page).toHaveTitle(/Learn AI\. Build with AI\. Prove what you can do\./);
     await expect(page.locator("h1")).toHaveText("Learn AI. Build with AI.Prove what you can do.");
-    await expect(page.getByText("For Nigerian students — with a global horizon")).toBeVisible();
+    await expect(page.getByText("For learners everywhere — built for global opportunity")).toBeVisible();
 
     const headings = await page.locator("main h2").allTextContents();
     expect(headings).toEqual([

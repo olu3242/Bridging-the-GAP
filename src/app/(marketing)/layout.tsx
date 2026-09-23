@@ -29,7 +29,7 @@ const inter = Inter({
  */
 export const metadata: Metadata = {
   title: `${BRAND.name} — Learn AI. Build with AI. Prove what you can do.`,
-  description: `${BRAND.name} helps Nigerian university students build practical AI capability through personalized learning, real projects, mentorship, and verified skills for the future of work.`,
+  description: `${BRAND.name} helps learners worldwide build practical AI capability through personalized learning, real projects, mentorship, and verified skills for the future of work.`,
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

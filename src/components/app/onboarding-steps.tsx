@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Alert, Progress } from "@/components/ui/feedback";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { idleState, type ActionState } from "@/server/actions/action-result";
+import { idleState } from "@/server/actions/action-result";
+import { submitOnboardingStepAction } from "@/server/actions/onboarding";
 import {
   ONBOARDING_STEPS,
   PERSONA_INTENT_COPY,
@@ -16,8 +17,6 @@ import type { OnboardingState } from "@/domain/identity/lifecycle";
 import { PERSONA_LABELS } from "@/domain/identity/persona";
 import type { LearnerProfileRow, ProfileRow } from "@/lib/db/types";
 
-type Action = (state: ActionState, formData: FormData) => Promise<ActionState>;
-
 const FOCUS_AREA_SUGGESTIONS = [
   "Software engineering",
   "Data & analytics",
@@ -28,17 +27,15 @@ const FOCUS_AREA_SUGGESTIONS = [
 ];
 
 export function OnboardingFlow({
-  action,
   state: onboardingState,
   profile,
   learnerProfile,
 }: {
-  action: Action;
   state: OnboardingState;
   profile: ProfileRow;
   learnerProfile: LearnerProfileRow | null;
 }) {
-  const [state, formAction] = useActionState(action, idleState);
+  const [state, formAction] = useActionState(submitOnboardingStepAction, idleState);
   const step = onboardingState === "not_started" ? "profile" : onboardingState;
   const meta = ONBOARDING_STEPS.find((s) => s.state === step) ?? ONBOARDING_STEPS[0];
   const error = (field: string) => state.fieldErrors?.[field];
@@ -79,7 +76,7 @@ export function OnboardingFlow({
                   <Field
                     label="Country"
                     htmlFor="countryCode"
-                    hint="Two-letter code, e.g. NG."
+                    hint="Two-letter code, e.g. US."
                     error={error("countryCode")}
                   >
                     <Input

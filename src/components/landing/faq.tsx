@@ -5,7 +5,7 @@ const FAQS = [
   {
     question: "Who is BTG AI actually for?",
     answer:
-      "BTG AI is built primarily for Nigerian university students who want practical, usable AI skills — whatever they're studying. You don't need a computer science background to start; you need curiosity and a willingness to build.",
+      "BTG AI is built for learners worldwide who want practical, usable AI skills — whatever they're studying, wherever they live. You don't need a computer science background to start; you need curiosity and a willingness to build.",
   },
   {
     question: "Do I need to know how to code?",

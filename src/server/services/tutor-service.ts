@@ -1,6 +1,4 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fromPostgresError } from "@/domain/shared/errors";
 import {
@@ -16,15 +14,9 @@ import {
   type TutorOutput,
 } from "@/domain/tutor/policy";
 import type { TutorSessionRow, TutorTurnRow } from "@/lib/db/types";
+import { isTutorProviderConfigured, runTutorModel } from "./tutor-provider";
 
-/**
- * The model this tutor runs on. Opus 5 has thinking on by default, so the
- * `thinking` parameter is deliberately omitted.
- */
-const TUTOR_MODEL = "claude-opus-5";
-
-/** Coaching turns are deliberately short; 2000 is the reason, not a guess. */
-const TUTOR_MAX_TOKENS = 2000;
+export { isTutorProviderConfigured };
 
 export interface TutorContext {
   competency?: { name: string; description: string | null; target_level: number } | null;
@@ -76,11 +68,6 @@ export async function listTutorTurns(
   return (data ?? []) as TutorTurnRow[];
 }
 
-/** True when a credential is present for the provider to use. */
-export function isTutorProviderConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
-}
-
 function contextForFallback(context: TutorContext) {
   return {
     competencyName: context.competency?.name,
@@ -129,89 +116,67 @@ export async function runTutorTurn(input: {
     };
   }
 
-  const client = new Anthropic();
+  const result = await runTutorModel({
+    instruction: buildTutorInstruction(input.intent),
+    context: input.context,
+    learnerMessage: input.learnerMessage,
+  });
 
-  try {
-    const message = await client.messages.parse({
-      model: TUTOR_MODEL,
-      max_tokens: TUTOR_MAX_TOKENS,
-      system: buildTutorInstruction(input.intent),
-      output_config: { format: zodOutputFormat(tutorOutputSchema) },
-      messages: [
-        {
-          role: "user",
-          content: [
-            "Learner context (approved, read-only):",
-            JSON.stringify(input.context),
-            "",
-            "Learner message:",
-            input.learnerMessage,
-          ].join("\n"),
-        },
-      ],
-    });
-
-    // A policy decline from the provider is an outcome, not an exception.
-    if (message.stop_reason === "refusal") {
-      return {
-        outcome: "refused_policy",
-        refusalReason: `The provider declined this request (${message.stop_details?.category ?? "unspecified"}).`,
-        output: deterministicCoaching(input.intent, contextForFallback(input.context)),
-        model: message.model,
-      };
-    }
-
-    const parsed = tutorOutputSchema.safeParse(message.parsed_output);
-    if (!parsed.success) {
-      return {
-        outcome: "invalid_output",
-        refusalReason: `The tutor's response did not match the required shape: ${parsed.error.issues[0]?.message}`,
-        output: deterministicCoaching(input.intent, contextForFallback(input.context)),
-        model: message.model,
-      };
-    }
-
-    const guard = guardTutorOutput(parsed.data);
-    if (!guard.ok) {
-      return {
-        outcome: guard.outcome!,
-        refusalReason: guard.reason,
-        output: {
-          response:
-            "I started to say something I'm not allowed to claim — only a human reviewer can verify a skill or issue a credential. Ask me to explain, question or critique instead.",
-          follow_up_question: null,
-          uncertainty: null,
-          suggested_next_action: "Ask me to critique the work you have written so far.",
-        },
-        model: message.model,
-      };
-    }
-
-    return { outcome: "delivered", output: parsed.data, model: message.model };
-  } catch (error) {
-    // Most specific first. Anything that means "no usable model right now"
-    // becomes provider_unavailable and falls back to the deterministic path.
-    if (
-      error instanceof Anthropic.AuthenticationError ||
-      error instanceof Anthropic.RateLimitError ||
-      error instanceof Anthropic.APIConnectionError ||
-      (error instanceof Anthropic.APIError && (error.status ?? 500) >= 500)
-    ) {
-      return {
-        outcome: "provider_unavailable",
-        refusalReason: `The model provider was unreachable (${error.constructor.name}).`,
-        output: deterministicCoaching(input.intent, contextForFallback(input.context)),
-      };
-    }
-    if (error instanceof Anthropic.APIError) {
-      return {
-        outcome: "invalid_output",
-        refusalReason: `The provider rejected the request (${error.status}).`,
-        output: deterministicCoaching(input.intent, contextForFallback(input.context)),
-      };
-    }
-    throw error;
+  if (result.kind === "unavailable") {
+    return {
+      outcome: "provider_unavailable",
+      refusalReason: result.reason,
+      output: deterministicCoaching(input.intent, contextForFallback(input.context)),
+    };
   }
+
+  if (result.kind === "refusal") {
+    return {
+      outcome: "refused_policy",
+      refusalReason: result.reason,
+      output: deterministicCoaching(input.intent, contextForFallback(input.context)),
+      model: result.model,
+    };
+  }
+
+  if (result.kind === "invalid") {
+    return {
+      outcome: "invalid_output",
+      refusalReason: result.reason,
+      output: deterministicCoaching(input.intent, contextForFallback(input.context)),
+      model: result.model,
+    };
+  }
+
+  // Validate the shape ourselves even though the provider was asked for it: a
+  // structured-output guarantee is the provider's claim, not our verification.
+  const parsed = tutorOutputSchema.safeParse(result.parsed);
+  if (!parsed.success) {
+    return {
+      outcome: "invalid_output",
+      refusalReason: `The tutor's response did not match the required shape: ${parsed.error.issues[0]?.message}`,
+      output: deterministicCoaching(input.intent, contextForFallback(input.context)),
+      model: result.model,
+    };
+  }
+
+  const guard = guardTutorOutput(parsed.data);
+  if (!guard.ok) {
+    return {
+      outcome: guard.outcome!,
+      refusalReason: guard.reason,
+      output: {
+        response:
+          "I started to say something I'm not allowed to claim — only a human reviewer can verify a skill or issue a credential. Ask me to explain, question or critique instead.",
+        follow_up_question: null,
+        uncertainty: null,
+        suggested_next_action: "Ask me to critique the work you have written so far.",
+      },
+      model: result.model,
+    };
+  }
+
+  return { outcome: "delivered", output: parsed.data, model: result.model };
 }
 
 /** Persists the turn — including refusals — with its governance metadata. */
