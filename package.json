@@ -20,7 +20,8 @@
     "curriculum:check": "node scripts/build-curriculum.mjs --check",
     "curriculum:videos": "node scripts/verify-curriculum-videos.mjs",
     "visuals:build": "node scripts/build-curriculum-visuals.mjs",
-    "visuals:check": "node scripts/build-curriculum-visuals.mjs --check"
+    "visuals:check": "node scripts/build-curriculum-visuals.mjs --check",
+    "visuals:upload": "node scripts/upload-curriculum-visuals.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",
@@ -35,6 +36,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.544.0",
     "next": "16.3.5",
+    "openai": "^7.22.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",

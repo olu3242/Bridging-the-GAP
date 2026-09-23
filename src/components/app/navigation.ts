@@ -58,4 +58,5 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/organizations", label: "Organizations", icon: "building-2", capability: "organization.create" },
   { href: "/governance", label: "Flywheel governance", icon: "landmark", capability: "organization.manage" },
   { href: "/intelligence", label: "Intelligence", icon: "bar-chart-3", capability: "intelligence.read_org" },
+  { href: "/console/curriculum", label: "Curriculum release", icon: "clipboard-check", capability: "operator.console.view" },
 ];

@@ -16,7 +16,10 @@
   --color-surface-3: oklch(0.29 0.035 268);
   --color-ink: oklch(0.97 0.005 268);
   --color-ink-muted: oklch(0.76 0.02 268);
-  --color-ink-subtle: oklch(0.62 0.025 268);
+  /* 0.65, not 0.62: at 0.62 this token measured 4.46:1 on --color-surface-2,
+     which fails WCAG AA for normal text. 0.65 measures 5.02:1 there and
+     5.99:1 on --color-surface-0. tests/domain/contrast.test.ts pins both. */
+  --color-ink-subtle: oklch(0.65 0.025 268);
   --color-line: oklch(0.34 0.03 268);
 
   --color-brand: oklch(0.66 0.2 284);

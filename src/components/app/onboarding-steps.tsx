@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Alert, Progress } from "@/components/ui/feedback";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { idleState, type ActionState } from "@/server/actions/action-result";
+import { idleState } from "@/server/actions/action-result";
 import { submitOnboardingStepAction } from "@/server/actions/onboarding";
 import {
   ONBOARDING_STEPS,
