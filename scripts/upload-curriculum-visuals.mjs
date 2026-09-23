@@ -49,6 +49,12 @@ let missing = 0;
 let mismatched = 0;
 
 for (const asset of assets ?? []) {
+  // Rejected assets are historical review records. Their bytes must not be
+  // uploaded or treated as a release-blocking provenance mismatch.
+  if (asset.status === "rejected") {
+    skipped += 1;
+    continue;
+  }
   const assetPath = asset.metadata?.asset_path;
   const format = asset.metadata?.format;
   const expectedHash = asset.metadata?.provenance?.asset_hash;
